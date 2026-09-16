@@ -1,0 +1,40 @@
+# Build Results (Critical)
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Node / React (Frontend)
+node_modules/
+dist/
+build/
+
+# .NET Core / NuGet
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+*.snupkg
+
+# Environment & Secrets (Important for your DB connection)
+.env
+.env.local
+*.env
+secrets.json
+
+# Logs & Temp
+*.log
+*.tmp
