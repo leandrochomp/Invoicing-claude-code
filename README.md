@@ -12,7 +12,7 @@
 # Development Tools:
 * dotnet cli
 * Jetbrains Rider 2026.2.1 (Non-commercial)
-* Ubuntu 24.04.2 LTS
+* Ubuntu 24.04.4 LTS
 
 # CLI Commands:
 ```shell 
@@ -82,7 +82,7 @@ The application will automatically read values from your `.env` file when runnin
 
 1. **Initialize user secrets for each project**:
    ```bash
-   cd src/App/InvoicingApi
+   cd src/Api/InvoicingApi
    dotnet user-secrets init
    
    cd ../../InvoicingGrpc
@@ -144,6 +144,5 @@ in the root folder of the solution, run the following command to rollback the la
 ```bash
 dotnet ef database remove --project Shared --startup-project App/InvoicingApi
 ```
-````
 
 
