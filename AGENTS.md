@@ -27,6 +27,11 @@ Reference `src/docs/github.md`
 - One logical change per commit; include regression/behavior tests in the same commit as the change.
 - Never commit secrets, connection strings, or generated build artifacts.
 - Always commit locally first, then push. Never `--force` to `main`.
+  Never leave a body that is only the AI co-author trailer.
+- Keep the `Co-Authored-By` trailer as the last line of the commit body.
+- PR body must be meaningful: 2-4 sentences explaining *what* changed and *why*, not *how*. summary, motivation, and what changed.
+    Never open a PR with a body that is only the commit list or the
+    co-author trailer. `--fill` uses it automatically.
 - Run `dotnet build` / `npm run build` before committing (per repo constraints).
 - All work happens on a feature branch — never commit directly to `main`.
 - Branch naming: `type/short-description` (e.g. `feat/invoice-line-validation`, `fix/tax-calc-rounding`, `docs/api-readme`).
