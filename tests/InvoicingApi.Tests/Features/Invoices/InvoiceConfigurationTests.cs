@@ -1,45 +1,50 @@
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
 
-public class InvoiceConfigurationTests
+[Collection(PostgresCollection.Name)]
+public class InvoiceConfigurationTests(PostgresFixture postgres)
 {
     [Fact]
     public void Configure_SetsUpValidEntityConfiguration()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("InvoiceConfigurationTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Invoice));
 
-        Assert.NotNull(entity);
-        Assert.NotNull(entity.FindPrimaryKey());
+        entity.ShouldNotBeNull();
+        entity.FindPrimaryKey().ShouldNotBeNull();
     }
 
     [Fact]
     public void Configure_StatusIsConfigured()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("InvoiceStatusConversionTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Invoice));
         var statusProp = entity.FindProperty(nameof(Invoice.Status));
 
-        Assert.NotNull(statusProp);
-        Assert.Equal(typeof(InvoiceStatus), statusProp.ClrType);
+        statusProp.ShouldNotBeNull();
+        statusProp.ClrType.ShouldBe(typeof(InvoiceStatus));
     }
 
     [Fact]
-    public void Configure_MoneyFieldsExist()
+    public void Configure_MoneyFieldsHaveCorrectPrecision()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("InvoiceMoneyPrecisionTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
@@ -49,19 +54,17 @@ public class InvoiceConfigurationTests
         var taxTotalProp = entity.FindProperty(nameof(Invoice.TaxTotal));
         var grandTotalProp = entity.FindProperty(nameof(Invoice.GrandTotal));
 
-        Assert.NotNull(subTotalProp);
-        Assert.NotNull(taxTotalProp);
-        Assert.NotNull(grandTotalProp);
-        Assert.Equal(typeof(decimal), subTotalProp.ClrType);
-        Assert.Equal(typeof(decimal), taxTotalProp.ClrType);
-        Assert.Equal(typeof(decimal), grandTotalProp.ClrType);
+        subTotalProp.GetColumnType().ShouldBe("numeric(18,2)");
+        taxTotalProp.GetColumnType().ShouldBe("numeric(18,2)");
+        grandTotalProp.GetColumnType().ShouldBe("numeric(18,2)");
     }
 
     [Fact]
     public void Configure_InvoiceNumberIsUnique()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("InvoiceNumberUniqueTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
@@ -69,7 +72,23 @@ public class InvoiceConfigurationTests
         var invoiceNumberIndex = entity.GetIndexes()
             .FirstOrDefault(i => i.Properties.Any(p => p.Name == nameof(Invoice.InvoiceNumber)));
 
-        Assert.NotNull(invoiceNumberIndex);
-        Assert.True(invoiceNumberIndex.IsUnique);
+        invoiceNumberIndex.ShouldNotBeNull();
+        invoiceNumberIndex.IsUnique.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Configure_RestrictDeleteBehaviorForPayments()
+    {
+        var options = new DbContextOptionsBuilder<InvoicingDbContext>()
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
+            .Options;
+
+        using var context = new InvoicingDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(Invoice));
+        var paymentsNavigation = entity.FindNavigation(nameof(Invoice.Payments));
+
+        paymentsNavigation.ShouldNotBeNull();
+        ((int)paymentsNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
 }

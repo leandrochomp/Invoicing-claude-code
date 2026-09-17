@@ -1,67 +1,72 @@
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
 
-public class PaymentConfigurationTests
+[Collection(PostgresCollection.Name)]
+public class PaymentConfigurationTests(PostgresFixture postgres)
 {
     [Fact]
     public void Configure_SetsUpValidEntityConfiguration()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("PaymentConfigurationTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Payment));
 
-        Assert.NotNull(entity);
-        Assert.NotNull(entity.FindPrimaryKey());
+        entity.ShouldNotBeNull();
+        entity.FindPrimaryKey().ShouldNotBeNull();
     }
 
     [Fact]
     public void Configure_MethodIsConfigured()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("PaymentMethodConversionTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Payment));
         var methodProp = entity.FindProperty(nameof(Payment.Method));
 
-        Assert.NotNull(methodProp);
-        Assert.Equal(typeof(PaymentMethod), methodProp.ClrType);
+        methodProp.ShouldNotBeNull();
+        methodProp.ClrType.ShouldBe(typeof(PaymentMethod));
     }
 
     [Fact]
-    public void Configure_AmountHasCorrectType()
+    public void Configure_AmountHasCorrectPrecision()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("PaymentAmountPrecisionTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Payment));
         var amountProp = entity.FindProperty(nameof(Payment.Amount));
 
-        Assert.Equal(typeof(decimal), amountProp.ClrType);
+        amountProp.GetColumnType().ShouldBe("numeric(18,2)");
     }
 
     [Fact]
-    public void Configure_RestrictDeletesPayments()
+    public void Configure_RestrictDeleteBehavior()
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
-            .UseInMemoryDatabase("PaymentRestrictDeleteTest")
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         using var context = new InvoicingDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Payment));
         var invoiceNavigation = entity.FindNavigation(nameof(Payment.Invoice));
-        var invoiceFk = invoiceNavigation?.ForeignKey;
 
-        Assert.NotNull(invoiceFk);
-        Assert.Equal(DeleteBehavior.Restrict, invoiceFk.DeleteBehavior);
+        invoiceNavigation.ShouldNotBeNull();
+        ((int)invoiceNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
 }

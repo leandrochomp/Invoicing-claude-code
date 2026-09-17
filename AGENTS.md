@@ -48,6 +48,10 @@ Reference `src/docs/api-documentation.md`
 
 Reference `src/docs/database.md`
 
+### Testing
+
+Reference `src/docs/testing.md`
+
 ### Backend
 
 Reference `src/docs/backend.md`
