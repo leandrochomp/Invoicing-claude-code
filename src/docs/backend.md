@@ -15,7 +15,7 @@
 
 ## Error Handling
 
-Three layers, each with a distinct purpose.
+Three layers, each with a distinct purpose. ProblemDetails (RFC 9457) is the **wire format** for all HTTP errors.
 
 ### 1. Request Validation — FluentValidation
 Validates DTO shape at the API boundary. Runs before the handler does work.
@@ -40,5 +40,20 @@ Guard.Against.NegativeOrZero(amount);
 Guard.Against.NullOrWhiteSpace(customerName);
 ```
 
+### 3. Business Outcomes — Ardalis.Result
+Signals expected, nameable business-rule outcomes from service/application-layer methods (not found, cannot perform this transition, etc.) — distinct from request-shape validation and impossible-state guards.
+- Service/application-layer methods return `Ardalis.Result.Result<T>` instead of throwing or returning null for these cases.
+- Endpoint handlers map the result to HTTP via the `.ToApiResult()` extension (`InvoicingApi.Extensions.ResultExtensions`), which wraps `Ardalis.Result.AspNetCore`'s `ToMinimalApiResult()`.
+
+```csharp
+public async Task<Result<ClientSummaryDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+{
+    var client = await repository.GetByIdAsync(id, cancellationToken);
+    return client is null ? Result<ClientSummaryDto>.NotFound() : new ClientSummaryDto(...);
+}
+```
+
 ## Global exception middleware
 Thrown exceptions (guards, infrastructure failures, unexpected bugs) bubble up to a single exception handler. Do NOT wrap every handler in try/catch.
+- Implemented via ASP.NET Core's `IExceptionHandler` (`InvoicingApi.Infrastructure.ExceptionHandling.GlobalExceptionHandler`), registered with `AddProblemDetails()` + `AddExceptionHandler<GlobalExceptionHandler>()`, and wired first in the pipeline via `app.UseExceptionHandler()`.
+- Unhandled exceptions produce a generic 500 `application/problem+json` response — no exception details are exposed to the client.
