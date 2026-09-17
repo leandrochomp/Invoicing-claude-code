@@ -12,7 +12,7 @@
 # Development Tools:
 * dotnet cli
 * Jetbrains Rider 2026.2.1 (Non-commercial)
-* Ubuntu 24.04.4 LTS
+* Ubuntu 26.04.1 LTS
 
 # CLI Commands:
 ```shell 

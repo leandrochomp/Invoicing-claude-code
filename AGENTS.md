@@ -61,11 +61,12 @@ Reference `src/docs/frontend.md`
 - Never modify files in `/migrations` by hand.
 - Ask before adding new NuGet or npm dependencies.
 - Run `dotnet build` after backend changes; `npm run build` after frontend changes.
+- Run `make format-check` after backend changes. If violations exist, fix them or run `make format` for auto-fixable ones.
 
 ## Token Discipline
 - Ponytail is active. Prefer stdlib and native features over new dependencies.
 - Caveman is active. If reading large logs or diffs, summarize before acting.
 
 ## Platform
-Ubuntu 24.04. Rider IDE. dotnet CLI. Claude Code in Rider's integrated terminal.
+Ubuntu 26.04.1 Rider IDE. dotnet CLI. Claude Code in Rider's integrated terminal.
 - Use `/ide` to surface diffs in Rider.
