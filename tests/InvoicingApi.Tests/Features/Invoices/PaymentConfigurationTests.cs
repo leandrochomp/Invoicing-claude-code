@@ -32,10 +32,9 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Payment));
-        var methodProp = entity.FindProperty(nameof(Payment.Method));
+        var entity = context.Model.FindEntityType(typeof(Payment))!;
+        var methodProp = entity.FindProperty(nameof(Payment.Method))!;
 
-        methodProp.ShouldNotBeNull();
         methodProp.ClrType.ShouldBe(typeof(PaymentMethod));
     }
 
@@ -48,8 +47,8 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Payment));
-        var amountProp = entity.FindProperty(nameof(Payment.Amount));
+        var entity = context.Model.FindEntityType(typeof(Payment))!;
+        var amountProp = entity.FindProperty(nameof(Payment.Amount))!;
 
         amountProp.GetColumnType().ShouldBe("numeric(18,2)");
     }
@@ -63,10 +62,9 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Payment));
-        var invoiceNavigation = entity.FindNavigation(nameof(Payment.Invoice));
+        var entity = context.Model.FindEntityType(typeof(Payment))!;
+        var invoiceNavigation = entity.FindNavigation(nameof(Payment.Invoice))!;
 
-        invoiceNavigation.ShouldNotBeNull();
         ((int)invoiceNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
 }

@@ -7,4 +7,7 @@
 - Money stored as `decimal(18,2)`. Never float/double.
 - Dates stored as UTC. `DateTimeOffset` for invoice issue dates.
 - `.editorconfig` at repo root defines C# style. Based on dotnet/runtime's config.
+- Nullable warnings (CS8600–CS8629) are errors via `.editorconfig`. `make check` must pass before considering any task done.
+- Never "fix" a nullable error with `!` (null-forgiving) unless a comment justifies why the value can't be null. Prefer guard clauses.
+- Never add suppressions (`#pragma`, `WarningsNotAsErrors`) without explicit user approval.
 - Run `make format-check` or `dotnet format Invoicing.Claude.Code.slnx --verify-no-changes` to check.

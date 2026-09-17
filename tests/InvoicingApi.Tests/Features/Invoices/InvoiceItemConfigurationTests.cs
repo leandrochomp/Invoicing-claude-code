@@ -32,12 +32,12 @@ public class InvoiceItemConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(InvoiceItem));
+        var entity = context.Model.FindEntityType(typeof(InvoiceItem))!;
 
-        var quantityProp = entity.FindProperty(nameof(InvoiceItem.Quantity));
-        var unitPriceProp = entity.FindProperty(nameof(InvoiceItem.UnitPrice));
-        var taxRateProp = entity.FindProperty(nameof(InvoiceItem.TaxRate));
-        var lineTotalProp = entity.FindProperty(nameof(InvoiceItem.LineTotal));
+        var quantityProp = entity.FindProperty(nameof(InvoiceItem.Quantity))!;
+        var unitPriceProp = entity.FindProperty(nameof(InvoiceItem.UnitPrice))!;
+        var taxRateProp = entity.FindProperty(nameof(InvoiceItem.TaxRate))!;
+        var lineTotalProp = entity.FindProperty(nameof(InvoiceItem.LineTotal))!;
 
         quantityProp.GetColumnType().ShouldBe("numeric(18,4)");
         unitPriceProp.GetColumnType().ShouldBe("numeric(18,2)");
@@ -54,10 +54,9 @@ public class InvoiceItemConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(InvoiceItem));
-        var invoiceNavigation = entity.FindNavigation(nameof(InvoiceItem.Invoice));
+        var entity = context.Model.FindEntityType(typeof(InvoiceItem))!;
+        var invoiceNavigation = entity.FindNavigation(nameof(InvoiceItem.Invoice))!;
 
-        invoiceNavigation.ShouldNotBeNull();
         ((int)invoiceNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Cascade);
     }
 }

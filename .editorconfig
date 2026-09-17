@@ -195,3 +195,12 @@ indent_size = 2
 end_of_line = lf
 [*.{cmd,bat}]
 end_of_line = crlf
+
+# Nullable reference types — treated as errors
+dotnet_diagnostic.CS8600.severity = error  # Converting null literal or possible null value
+dotnet_diagnostic.CS8601.severity = error  # Possible null reference assignment
+dotnet_diagnostic.CS8602.severity = error  # Dereference of a possibly null reference
+dotnet_diagnostic.CS8603.severity = error  # Possible null return
+dotnet_diagnostic.CS8604.severity = error  # Possible null reference argument
+dotnet_diagnostic.CS8618.severity = error  # Non-nullable not initialized
+dotnet_diagnostic.CS8625.severity = error  # Cannot convert null literal to non-nullable

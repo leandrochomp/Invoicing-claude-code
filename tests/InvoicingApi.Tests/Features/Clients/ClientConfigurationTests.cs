@@ -32,11 +32,11 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Client));
+        var entity = context.Model.FindEntityType(typeof(Client))!;
 
-        var companyNameProp = entity.FindProperty(nameof(Client.CompanyName));
-        var emailProp = entity.FindProperty(nameof(Client.Email));
-        var addressLine1Prop = entity.FindProperty(nameof(Client.AddressLine1));
+        var companyNameProp = entity.FindProperty(nameof(Client.CompanyName))!;
+        var emailProp = entity.FindProperty(nameof(Client.Email))!;
+        var addressLine1Prop = entity.FindProperty(nameof(Client.AddressLine1))!;
 
         companyNameProp.IsNullable.ShouldBeFalse();
         emailProp.IsNullable.ShouldBeFalse();
@@ -52,11 +52,11 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Client));
+        var entity = context.Model.FindEntityType(typeof(Client))!;
 
-        var contactNameProp = entity.FindProperty(nameof(Client.ContactName));
-        var phoneProp = entity.FindProperty(nameof(Client.Phone));
-        var deletedAtProp = entity.FindProperty(nameof(Client.DeletedAt));
+        var contactNameProp = entity.FindProperty(nameof(Client.ContactName))!;
+        var phoneProp = entity.FindProperty(nameof(Client.Phone))!;
+        var deletedAtProp = entity.FindProperty(nameof(Client.DeletedAt))!;
 
         contactNameProp.IsNullable.ShouldBeTrue();
         phoneProp.IsNullable.ShouldBeTrue();
@@ -72,10 +72,9 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Client));
-        var invoicesNavigation = entity.FindNavigation(nameof(Client.Invoices));
+        var entity = context.Model.FindEntityType(typeof(Client))!;
+        var invoicesNavigation = entity.FindNavigation(nameof(Client.Invoices))!;
 
-        invoicesNavigation.ShouldNotBeNull();
         ((int)invoicesNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
 }

@@ -37,8 +37,10 @@ clean: ## Remove build artifacts
 format: ## Auto-fix formatting per .editorconfig
 	dotnet format Invoicing.Claude.Code.slnx
 
-format-check: ## Verify formatting without modifying files
+format-check: ## Full compliance: nullable warnings + formatting
 	dotnet format Invoicing.Claude.Code.slnx --verify-no-changes
+	@! dotnet build Invoicing.Claude.Code.slnx --no-restore 2>&1 | grep -E "^\s+warning CS"
+	@echo "✓ Full compliance: nullable warnings + formatting"
 
 restore: ## Restore .NET dependencies (in a container, no local SDK needed)
 	$(SDK_RUN) dotnet restore Invoicing.Claude.Code.slnx

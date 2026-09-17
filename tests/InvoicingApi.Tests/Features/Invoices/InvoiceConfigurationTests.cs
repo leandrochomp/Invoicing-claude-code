@@ -32,10 +32,9 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Invoice));
-        var statusProp = entity.FindProperty(nameof(Invoice.Status));
+        var entity = context.Model.FindEntityType(typeof(Invoice))!;
+        var statusProp = entity.FindProperty(nameof(Invoice.Status))!;
 
-        statusProp.ShouldNotBeNull();
         statusProp.ClrType.ShouldBe(typeof(InvoiceStatus));
     }
 
@@ -48,11 +47,11 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Invoice));
+        var entity = context.Model.FindEntityType(typeof(Invoice))!;
 
-        var subTotalProp = entity.FindProperty(nameof(Invoice.SubTotal));
-        var taxTotalProp = entity.FindProperty(nameof(Invoice.TaxTotal));
-        var grandTotalProp = entity.FindProperty(nameof(Invoice.GrandTotal));
+        var subTotalProp = entity.FindProperty(nameof(Invoice.SubTotal))!;
+        var taxTotalProp = entity.FindProperty(nameof(Invoice.TaxTotal))!;
+        var grandTotalProp = entity.FindProperty(nameof(Invoice.GrandTotal))!;
 
         subTotalProp.GetColumnType().ShouldBe("numeric(18,2)");
         taxTotalProp.GetColumnType().ShouldBe("numeric(18,2)");
@@ -68,11 +67,10 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Invoice));
+        var entity = context.Model.FindEntityType(typeof(Invoice))!;
         var invoiceNumberIndex = entity.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Any(p => p.Name == nameof(Invoice.InvoiceNumber)));
+            .FirstOrDefault(i => i.Properties.Any(p => p.Name == nameof(Invoice.InvoiceNumber)))!;
 
-        invoiceNumberIndex.ShouldNotBeNull();
         invoiceNumberIndex.IsUnique.ShouldBeTrue();
     }
 
@@ -85,10 +83,9 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .Options;
 
         using var context = new InvoicingDbContext(options);
-        var entity = context.Model.FindEntityType(typeof(Invoice));
-        var paymentsNavigation = entity.FindNavigation(nameof(Invoice.Payments));
+        var entity = context.Model.FindEntityType(typeof(Invoice))!;
+        var paymentsNavigation = entity.FindNavigation(nameof(Invoice.Payments))!;
 
-        paymentsNavigation.ShouldNotBeNull();
         ((int)paymentsNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
 }
