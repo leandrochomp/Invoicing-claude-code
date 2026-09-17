@@ -1,4 +1,5 @@
 # Backend
+
 - Vertical Slice Architecture. Features live under `Features/<Name>/`, one file per slice.
 - Minimal API endpoints, no controllers.
 - Entities inherit `Entity` (Id: Guid, Version: int for optimistic concurrency).
@@ -11,3 +12,33 @@
 - Never "fix" a nullable error with `!` (null-forgiving) unless a comment justifies why the value can't be null. Prefer guard clauses.
 - Never add suppressions (`#pragma`, `WarningsNotAsErrors`) without explicit user approval.
 - Run `make format-check` or `dotnet format Invoicing.Claude.Code.slnx --verify-no-changes` to check.
+
+## Error Handling
+
+Three layers, each with a distinct purpose.
+
+### 1. Request Validation — FluentValidation
+Validates DTO shape at the API boundary. Runs before the handler does work.
+FluentValidation answers: "Is this request well-formed?"
+Returns `Results.ValidationProblem` on failure.
+- One `AbstractValidator<T>` per request type, defined inside the slice file.
+- Registered via assembly scan, not per-validator.
+- Invoked explicitly in the endpoint handler so the flow is visible.
+- `FluentValidation.DependencyInjectionExtensions`
+
+```csharp
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+```
+
+### 2. Guard Clauses — Ardalis.GuardClauses
+Protects internal contracts. Throws on programming errors.
+Use for impossible states, not business rules.
+
+```csharp
+Guard.Against.Null(request);
+Guard.Against.NegativeOrZero(amount);
+Guard.Against.NullOrWhiteSpace(customerName);
+```
+
+## Global exception middleware
+Thrown exceptions (guards, infrastructure failures, unexpected bugs) bubble up to a single exception handler. Do NOT wrap every handler in try/catch.

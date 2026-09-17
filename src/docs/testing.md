@@ -46,3 +46,4 @@ await Should.ThrowAsync<ValidationException>(async () => await handler.Handle(re
 
 // Decimal precision (important for invoicing)
 invoice.Total.ShouldBe(1234.56m);
+```

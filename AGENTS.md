@@ -1,5 +1,7 @@
 ## Project engineering guide
-Invoicing REST API. Backend: .NET 10 Minimal API + EF Core (Npgsql). Frontend: React + Vite. Keep changes maintainable, tested and consistent with the surrounding code.
+Invoicing REST API. Backend: .NET 10 Minimal API + EF Core (Npgsql).
+Frontend: React + Vite.
+Keep changes maintainable, tested and consistent with the surrounding code.
 New behavior requires a test in `/tests/`. Bug fixes require a regression test.
 
 Add packages via `dotnet add package` or `npm install`. Ask first.
@@ -8,7 +10,8 @@ Add packages via `dotnet add package` or `npm install`. Ask first.
 - `/src/Api` contains dotnet 10 backend webapi.
 - `/src/Shared` contains dotnet 10 class library general-purpose helpers that have no application-specific behavior.
 - `/tests/Shared.Tests` contains xUnit library.
-- `/src/web` contains the React client.
+- `/tests/InvoicingApi.Tests` contains xUnit library.
+- `/src/Web` contains the React client.
 
 ## Commands
 

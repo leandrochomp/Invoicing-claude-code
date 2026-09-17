@@ -15,6 +15,8 @@ level, not per-feature.
 | HTTP | Minimal API |
 | Persistence | EF Core + Npgsql |
 | Validation | FluentValidation |
+| Ardalis.GuardClauses | internal contract checks |
+| Ardalis.Result | business outcomes without exceptions|
 | Testing (assertions) | Shouldly |
 | Testing (mocking) | NSubstitute |
 | Observability | OpenTelemetry |
