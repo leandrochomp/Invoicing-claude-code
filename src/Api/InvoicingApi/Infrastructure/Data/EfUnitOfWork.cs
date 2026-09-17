@@ -2,8 +2,17 @@ using Shared.Data;
 
 namespace InvoicingApi.Infrastructure.Data;
 
-public class EfUnitOfWork(InvoicingDbContext context) : IUnitOfWork
+public class EfUnitOfWork : IUnitOfWork
 {
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        context.SaveChangesAsync(cancellationToken);
+    private readonly InvoicingDbContext _dbContext;
+
+    public EfUnitOfWork(InvoicingDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 }
