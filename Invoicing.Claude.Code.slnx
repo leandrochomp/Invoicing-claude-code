@@ -3,4 +3,7 @@
   <Folder Name="/src/Api/">
     <Project Path="src/Api/InvoicingApi/InvoicingApi.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/InvoicingApi.Tests/InvoicingApi.Tests.csproj" />
+  </Folder>
 </Solution>
