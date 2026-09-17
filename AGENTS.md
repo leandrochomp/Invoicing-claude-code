@@ -48,6 +48,9 @@ Reference `src/docs/api-documentation.md`
 
 Reference `src/docs/database.md`
 
+- PostgreSQL on localhost:5432.
+- Connection string from `ConnectionStrings:Default` in user secrets, never appsettings.json.
+
 ### Testing
 
 Reference `src/docs/testing.md`
@@ -59,10 +62,6 @@ Reference `src/docs/backend.md`
 ### Frontend
 
 Reference `src/docs/frontend.md`
-
-### Database
-- PostgreSQL on localhost:5432.
-- Connection string from `ConnectionStrings:Default` in user secrets, never appsettings.json.
 
 ## Constraints
 - Never commit connection strings, API keys, or secrets.
