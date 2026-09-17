@@ -67,5 +67,5 @@ Reference `src/docs/frontend.md`
 - Caveman is active. If reading large logs or diffs, summarize before acting.
 
 ## Platform
-Ubuntu 24.04. Rider IDE. dotnet CLI. Claude Code in Rider's integrated terminal.
+Ubuntu 26.04.1 Rider IDE. dotnet CLI. Claude Code in Rider's integrated terminal.
 - Use `/ide` to surface diffs in Rider.
