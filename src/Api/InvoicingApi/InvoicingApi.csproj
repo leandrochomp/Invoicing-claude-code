@@ -15,4 +15,8 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="InvoicingApi.Tests" />
+  </ItemGroup>
+
 </Project>

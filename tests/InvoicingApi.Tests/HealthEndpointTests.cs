@@ -1,8 +1,10 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace InvoicingApi.Tests;
 
-public class HealthEndpointTests
+[Collection(PostgresCollection.Name)]
+public class HealthEndpointTests(PostgresFixture postgres)
 {
     [Fact]
     public async Task Health_endpoint_responds()
@@ -10,9 +12,7 @@ public class HealthEndpointTests
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseSetting(
-                    "ConnectionStrings:Default",
-                    "Host=localhost;Database=invoicing;Username=postgres;Password=postgres");
+                builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
             });
 
         using var client = factory.CreateClient();
@@ -21,7 +21,7 @@ public class HealthEndpointTests
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.True(
-            response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.ServiceUnavailable,
-            $"Expected the health endpoint to respond, got {response.StatusCode}: {body}");
+            response.StatusCode == HttpStatusCode.OK,
+            $"Expected the health endpoint to report Healthy, got {response.StatusCode}: {body}");
     }
 }
