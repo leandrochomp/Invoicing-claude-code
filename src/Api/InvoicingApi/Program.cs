@@ -1,43 +1,12 @@
-using OpenTelemetry;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
-using Scalar.AspNetCore;
+using InvoicingApi.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// OpenTelemetry: logs, traces and metrics exported via OTLP (endpoint from
-// the OTEL_EXPORTER_OTLP_ENDPOINT env var, e.g. the Aspire dashboard container).
-builder.Logging.AddOpenTelemetry(logging =>
-{
-    logging.IncludeFormattedMessage = true;
-    logging.IncludeScopes = true;
-});
-
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation())
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddRuntimeInstrumentation())
-    .UseOtlpExporter();
-
-// Postgres client (connection string from ConnectionStrings:Default). Registers
-// health checks and OpenTelemetry tracing for Npgsql automatically.
-builder.AddNpgsqlDataSource("Default");
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.AddApiServices();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.MapOpenApi();
-app.MapScalarApiReference();
-
-app.UseHttpsRedirection();
-
-app.MapHealthChecks("/health");
+app.ConfigureApi();
 
 var summaries = new[]
 {
