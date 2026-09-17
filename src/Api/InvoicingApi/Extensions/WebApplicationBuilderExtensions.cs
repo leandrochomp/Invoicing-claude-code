@@ -1,4 +1,6 @@
+using InvoicingApi.Features.Clients;
 using InvoicingApi.Infrastructure.Data;
+using InvoicingApi.Infrastructure.ExceptionHandling;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OpenTelemetry;
@@ -34,6 +36,11 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         builder.Services.AddOpenApi();
+
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        builder.Services.AddScoped<ClientQueries>();
 
         return builder;
     }

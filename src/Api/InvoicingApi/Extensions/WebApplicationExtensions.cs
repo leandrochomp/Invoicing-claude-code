@@ -6,6 +6,8 @@ public static class WebApplicationExtensions
 {
     public static WebApplication ConfigureApi(this WebApplication app)
     {
+        app.UseExceptionHandler();
+
         app.MapOpenApi();
         app.MapScalarApiReference();
 
