@@ -15,7 +15,7 @@
 * Ubuntu 26.04.1 LTS
 
 # CLI Commands:
-```shell 
+```shell
 dotnet new webapi -o InvoicingApi
 dotnet new web -o InvoicingBff
 ```
@@ -23,7 +23,7 @@ dotnet new web -o InvoicingBff
 
 ```bash
 dotnet new sln -n Invoicing
-dotnet sln Invoicing.slnx add src/Api/InvoicingApi/InvoicingApi.csproj
+dotnet sln Invoicing.Claude.Code.slnx add src/Api/InvoicingApi/InvoicingApi.csproj
 ```
 
 # Environment Variables Setup
@@ -36,7 +36,7 @@ This project uses environment variables to manage configuration settings, especi
    ```bash
    # Navigate to the src directory
    cd src
-   
+
    # Copy the template file to create your own .env file
    cp .env.template .env
    ```
@@ -84,10 +84,10 @@ The application will automatically read values from your `.env` file when runnin
    ```bash
    cd src/Api/InvoicingApi
    dotnet user-secrets init
-   
+
    cd ../../InvoicingGrpc
    dotnet user-secrets init
-   
+
    cd ../InvoicingBff
    dotnet user-secrets init
    ```
@@ -100,7 +100,7 @@ The application will automatically read values from your `.env` file when runnin
    dotnet user-secrets set "Database:Name" "invoicing"
    dotnet user-secrets set "Database:User" "postgres"
    dotnet user-secrets set "Database:Password" "your_secure_password"
-   
+
    # Repeat for other projects as needed
    ```
 

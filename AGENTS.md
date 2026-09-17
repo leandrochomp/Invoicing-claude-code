@@ -44,13 +44,17 @@ Reference `src/docs/github.md`
 
 Reference `src/docs/api-documentation.md`
 
+### Database
+
+Reference `src/docs/database.md`
+
 ### Backend
 
 Reference `src/docs/backend.md`
 
 ### Frontend
 
-Reference `src/docs/frontend.md` 
+Reference `src/docs/frontend.md`
 
 ### Database
 - PostgreSQL on localhost:5432.

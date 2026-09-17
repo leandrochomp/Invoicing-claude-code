@@ -4,7 +4,7 @@ namespace InvoicingApi.Tests;
 
 public class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("invoicing")
         .WithUsername("postgres")
         .WithPassword("postgres")

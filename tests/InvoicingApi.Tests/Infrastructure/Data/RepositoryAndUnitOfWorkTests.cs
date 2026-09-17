@@ -1,10 +1,12 @@
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Shared.Entities;
 
 namespace InvoicingApi.Tests.Infrastructure.Data;
 
-file sealed class TestEntity : Entity
+internal sealed class TestEntity : Entity
 {
     public string Name { get; set; } = string.Empty;
 }
@@ -17,7 +19,7 @@ file sealed class TestDbContext(DbContextOptions<InvoicingDbContext> options, st
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasDefaultSchema(schema);
-        modelBuilder.Entity<TestEntity>();
+        modelBuilder.Entity<TestEntity>(e => e.ToTable("test_entities"));
     }
 }
 
@@ -28,10 +30,11 @@ public class RepositoryAndUnitOfWorkTests(PostgresFixture postgres)
     {
         var options = new DbContextOptionsBuilder<InvoicingDbContext>()
             .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
             .Options;
 
         var context = new TestDbContext(options, $"test_{Guid.NewGuid():N}");
-        context.Database.EnsureCreated();
+        context.GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return context;
     }
@@ -39,7 +42,7 @@ public class RepositoryAndUnitOfWorkTests(PostgresFixture postgres)
     [Fact]
     public async Task Adding_an_entity_and_saving_persists_it()
     {
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var repository = new Repository<TestEntity>(context);
         var unitOfWork = new EfUnitOfWork(context);
         var entity = new TestEntity { Name = "Acme" };
@@ -56,7 +59,7 @@ public class RepositoryAndUnitOfWorkTests(PostgresFixture postgres)
     [Fact]
     public async Task Listing_returns_all_persisted_entities()
     {
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var repository = new Repository<TestEntity>(context);
         var unitOfWork = new EfUnitOfWork(context);
 
