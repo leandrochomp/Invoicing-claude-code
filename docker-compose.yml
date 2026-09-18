@@ -11,6 +11,9 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: invoicing-api
+      Jwt__SigningKey: "${JWT_SIGNING_KEY:-docker-compose-dev-only-signing-key-32b-min}"
+      Jwt__Issuer: "${JWT_ISSUER:-InvoicingApi.Docker}"
+      Jwt__Audience: "${JWT_AUDIENCE:-InvoicingApi.Docker}"
     depends_on:
       db:
         condition: service_healthy
