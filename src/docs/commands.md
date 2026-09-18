@@ -7,7 +7,8 @@ Prefer `make` targets over raw commands.
 - `make build` — build solution
 - `make test` — run tests
 - `make run-api` — run the api, its db and the Aspire dashboard via docker compose
-- `make run-web` — run React dev server
+- `make run-bff` — run the InvoicingBff (needs `run-api` running alongside it)
+- `make run-web` — run React dev server (proxies `/bff/*` to InvoicingBff in dev, see frontend.md)
 - `make migrate` — apply EF migrations
 - `make migrate-add NAME=Foo` — create migration
 - `make up` / `make down` — start/stop api + db + aspire-dashboard (detached)
