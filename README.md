@@ -2,8 +2,6 @@
 
 * C# 14.0
 * WebAPI (net 10.0)
-* GRPC
-* BFF (Backend for Frontend) - TODO
 * EF Core
 
 # Design Solution:
@@ -80,15 +78,9 @@ The application will automatically read values from your `.env` file when runnin
 
 ## Alternative: Using .NET User Secrets (Local Development)
 
-1. **Initialize user secrets for each project**:
+1. **Initialize user secrets for the project**:
    ```bash
    cd src/Api/InvoicingApi
-   dotnet user-secrets init
-
-   cd ../../InvoicingGrpc
-   dotnet user-secrets init
-
-   cd ../InvoicingBff
    dotnet user-secrets init
    ```
 
