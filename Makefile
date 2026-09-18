@@ -1,4 +1,4 @@
-.PHONY: build build-api build-web test run-api run-web migrate migrate-add clean help up down logs restore clean-containers
+.PHONY: build build-api build-web test run-api run-bff run-web migrate migrate-add clean help up down logs restore clean-containers
 
 DOCKER_COMPOSE := docker compose
 SDK_IMAGE := mcr.microsoft.com/dotnet/sdk:10.0
@@ -13,13 +13,16 @@ build-api: ## Build the backend
 	dotnet build src/Api/InvoicingApi/InvoicingApi.csproj
 
 build-web: ## Build the frontend
-	cd src/web && npm run build # TODO
+	cd src/web && npm run build
 
 test: ## Run all tests (in a container, no local SDK needed)
 	$(SDK_RUN) dotnet test Invoicing.Claude.Code.slnx
 
 run-api: ## Run the api, its db and the Aspire dashboard via docker compose
 	$(DOCKER_COMPOSE) up --build api
+
+run-bff: ## Run the BFF (proxies auth to the api; run alongside run-api)
+	dotnet run --project src/Web/InvoicingBff
 
 run-web: ## Run the React dev server
 	cd src/web && npm run dev

@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/InvoicingApi.Tests/InvoicingApi.Tests.csproj" />
+    <Project Path="tests/InvoicingBff.Tests/InvoicingBff.Tests.csproj" />
     <Project Path="tests/Shared.Tests/Shared.Tests.csproj" />
   </Folder>
 </Solution>
