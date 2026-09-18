@@ -27,15 +27,39 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
+    private static Task<HttpResponseMessage> DeleteWithBodyAsync(
+        HttpClient client, string requestUri, DeleteClientRequest request)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, requestUri)
+        {
+            Content = JsonContent.Create(request),
+        };
+
+        return client.SendAsync(httpRequest);
+    }
+
     [Fact]
     public async Task Returns_not_found_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
         using var client = factory.CreateClient();
 
-        var response = await client.DeleteAsync($"/clients/{Guid.NewGuid()}");
+        var response = await DeleteWithBodyAsync(
+            client, $"/clients/{Guid.NewGuid()}", new DeleteClientRequest(Guid.NewGuid()));
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Returns_validation_problem_when_deleted_by_is_empty()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await DeleteWithBodyAsync(
+            client, $"/clients/{Guid.NewGuid()}", new DeleteClientRequest(Guid.Empty));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -63,7 +87,8 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
 
         using var httpClient = factory.CreateClient();
 
-        var deleteResponse = await httpClient.DeleteAsync($"/clients/{clientEntity.Id}");
+        var deleteResponse = await DeleteWithBodyAsync(
+            httpClient, $"/clients/{clientEntity.Id}", new DeleteClientRequest(Guid.NewGuid()));
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         var getResponse = await httpClient.GetAsync($"/clients/{clientEntity.Id}");

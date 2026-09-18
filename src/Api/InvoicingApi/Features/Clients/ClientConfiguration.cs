@@ -4,9 +4,9 @@ using Shared.Configuration;
 
 namespace InvoicingApi.Features.Clients;
 
-public class ClientConfiguration : EntityConfiguration<Client>
+public class ClientConfiguration : SoftDeletableEntityConfiguration<Client>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<Client> builder)
+    protected override void ConfigureSoftDeletableEntity(EntityTypeBuilder<Client> builder)
     {
         builder.Property(c => c.CompanyName)
             .IsRequired()
@@ -52,7 +52,8 @@ public class ClientConfiguration : EntityConfiguration<Client>
         builder.Property(c => c.IsActive)
             .HasDefaultValue(true);
 
-        builder.HasQueryFilter(c => c.DeletedAt == null);
+        builder.Property(c => c.IsDeleted)
+            .HasDefaultValue(false);
 
         builder.HasMany(c => c.Invoices)
             .WithOne(i => i.Client)

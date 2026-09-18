@@ -37,10 +37,12 @@ public class ClientConfigurationTests(PostgresFixture postgres)
         var companyNameProp = entity.FindProperty(nameof(Client.CompanyName))!;
         var emailProp = entity.FindProperty(nameof(Client.Email))!;
         var addressLine1Prop = entity.FindProperty(nameof(Client.AddressLine1))!;
+        var isDeletedProp = entity.FindProperty(nameof(Client.IsDeleted))!;
 
         companyNameProp.IsNullable.ShouldBeFalse();
         emailProp.IsNullable.ShouldBeFalse();
         addressLine1Prop.IsNullable.ShouldBeFalse();
+        isDeletedProp.IsNullable.ShouldBeFalse();
     }
 
     [Fact]
@@ -57,10 +59,12 @@ public class ClientConfigurationTests(PostgresFixture postgres)
         var contactNameProp = entity.FindProperty(nameof(Client.ContactName))!;
         var phoneProp = entity.FindProperty(nameof(Client.Phone))!;
         var deletedAtProp = entity.FindProperty(nameof(Client.DeletedAt))!;
+        var deletedByProp = entity.FindProperty(nameof(Client.DeletedBy))!;
 
         contactNameProp.IsNullable.ShouldBeTrue();
         phoneProp.IsNullable.ShouldBeTrue();
         deletedAtProp.IsNullable.ShouldBeTrue();
+        deletedByProp.IsNullable.ShouldBeTrue();
     }
 
     [Fact]
