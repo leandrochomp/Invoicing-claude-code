@@ -43,3 +43,96 @@ body {
   font-size: 0.875rem;
   margin: 0;
 }
+
+.app-shell {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.clients-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clients-table th,
+.clients-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.clients-row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.clients-error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.client-form-page {
+  display: flex;
+  justify-content: center;
+}
+
+.client-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 24rem;
+}
+
+.client-form label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.client-form input {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.client-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.client-form-checkbox input {
+  width: auto;
+}
+
+.client-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.client-form-actions button {
+  padding: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.client-form-error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin: 0;
+}

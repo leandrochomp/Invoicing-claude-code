@@ -1,4 +1,5 @@
 using InvoicingBff.Features.Auth;
+using InvoicingBff.Features.Clients;
 
 namespace InvoicingBff.Extensions;
 
@@ -31,6 +32,12 @@ public static class WebApplicationExtensions
         app.MapLoginEndpoint();
         app.MapLogoutEndpoint();
         app.MapSessionEndpoint();
+
+        app.MapListClientsEndpoint();
+        app.MapGetClientByIdEndpoint();
+        app.MapCreateClientEndpoint();
+        app.MapUpdateClientEndpoint();
+        app.MapDeleteClientEndpoint();
 
         return app;
     }

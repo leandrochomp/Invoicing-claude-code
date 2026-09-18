@@ -1,6 +1,8 @@
 using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingBff.Features.Auth;
+using InvoicingBff.Features.Clients;
+using InvoicingBff.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -11,6 +13,7 @@ public static class WebApplicationBuilderExtensions
     public static WebApplicationBuilder AddBffServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddProblemDetails();
+        builder.Services.AddHttpContextAccessor();
 
         var invoicingApiBaseUrl = builder.Configuration["InvoicingApi:BaseUrl"]
             ?? throw new InvalidOperationException("InvoicingApi:BaseUrl is not configured.");
@@ -18,6 +21,19 @@ public static class WebApplicationBuilderExtensions
         {
             client.BaseAddress = new Uri(invoicingApiBaseUrl);
         });
+
+        // Client CRUD calls carry the caller's JWT (see InvoicingApiAuthHandler), unlike login.
+        builder.Services.AddTransient<InvoicingApiAuthHandler>();
+        builder.Services.AddHttpClient<ListClientsHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+        builder.Services.AddHttpClient<GetClientByIdHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+        builder.Services.AddHttpClient<CreateClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+        builder.Services.AddHttpClient<UpdateClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+        builder.Services.AddHttpClient<DeleteClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
 
         builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
