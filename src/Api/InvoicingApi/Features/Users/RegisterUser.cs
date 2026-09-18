@@ -2,6 +2,7 @@ using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Data;
+using InvoicingApi.Infrastructure.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Users;
@@ -19,9 +20,9 @@ public class RegisterUserRequestValidator : AbstractValidator<RegisterUserReques
     }
 }
 
-public class RegisterUserCommand(InvoicingDbContext dbContext)
+public class RegisterUserHandler(InvoicingDbContext dbContext)
 {
-    public async Task<Result<UserSummaryDto>> RegisterAsync(
+    public async Task<Result<UserSummaryDto>> HandleAsync(
         RegisterUserRequest request, CancellationToken cancellationToken = default)
     {
         var usernameTaken = await dbContext.Users
@@ -52,20 +53,14 @@ public static class RegisterUserEndpoints
     {
         app.MapPost("/auth/register", async (
             RegisterUserRequest request,
-            IValidator<RegisterUserRequest> validator,
-            RegisterUserCommand command,
+            RegisterUserHandler handler,
             CancellationToken cancellationToken) =>
-        {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                return Results.ValidationProblem(validationResult.ToDictionary());
-            }
-
-            return (await command.RegisterAsync(request, cancellationToken)).ToApiResult();
-        })
+                (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
+        .AddEndpointFilter<ValidationFilter<RegisterUserRequest>>()
         .RequireRateLimiting("AuthPolicy")
-        .WithName("RegisterUser");
+        .WithName("RegisterUser")
+        .Produces<UserSummaryDto>(StatusCodes.Status201Created)
+        .ProducesValidationProblem();
 
         return app;
     }

@@ -44,18 +44,10 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceRequ
     }
 }
 
-public class UpdateInvoiceCommand(InvoicingDbContext dbContext)
+public class UpdateInvoiceHandler(InvoicingDbContext dbContext)
 {
-    private static readonly UpdateInvoiceValidator Validator = new();
-
-    public async Task<Result<InvoiceDto>> UpdateAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<InvoiceDto>> HandleAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await Validator.ValidateAsync(request, cancellationToken);
-        if (!validation.IsValid)
-        {
-            return Result<InvoiceDto>.Invalid(validation.ToValidationErrors());
-        }
-
         var invoice = await dbContext.Invoices
             .Include(i => i.Items)
             .Include(i => i.Payments)

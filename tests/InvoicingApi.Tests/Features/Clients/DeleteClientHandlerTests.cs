@@ -6,12 +6,12 @@ using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Clients;
 
-public class UpdateClientCommandTests
+public class DeleteClientHandlerTests
 {
     private static Client ExistingClient() => new()
     {
-        CompanyName = "Old Name",
-        Email = "old@acme.test",
+        CompanyName = "Acme Corp",
+        Email = "billing@acme.test",
         AddressLine1 = "1 Main St",
         City = "Springfield",
         StateOrRegion = "IL",
@@ -20,49 +20,36 @@ public class UpdateClientCommandTests
         PreferredCurrency = "USD",
     };
 
-    private static UpdateClientRequest UpdateRequest() => new(
-        CompanyName: "New Name",
-        ContactName: "Jane Doe",
-        Email: "new@acme.test",
-        Phone: "555-0100",
-        AddressLine1: "2 Main St",
-        AddressLine2: null,
-        City: "Springfield",
-        StateOrRegion: "IL",
-        PostalCode: "62701",
-        Country: "US",
-        PreferredCurrency: "EUR",
-        IsActive: false);
-
     [Fact]
     public async Task Returns_not_found_when_client_does_not_exist()
     {
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Client?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var command = new UpdateClientCommand(repository, unitOfWork);
+        var handler = new DeleteClientHandler(repository, unitOfWork);
 
-        var result = await command.UpdateAsync(Guid.NewGuid(), UpdateRequest());
+        var result = await handler.HandleAsync(Guid.NewGuid(), Guid.NewGuid());
 
         result.Status.ShouldBe(ResultStatus.NotFound);
     }
 
     [Fact]
-    public async Task Updates_tracked_entity_and_saves()
+    public async Task Soft_deletes_by_setting_deleted_audit_fields_without_removing()
     {
         var client = ExistingClient();
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(client.Id, Arg.Any<CancellationToken>()).Returns(client);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var command = new UpdateClientCommand(repository, unitOfWork);
+        var handler = new DeleteClientHandler(repository, unitOfWork);
+        var deletedBy = Guid.NewGuid();
 
-        var result = await command.UpdateAsync(client.Id, UpdateRequest());
+        var result = await handler.HandleAsync(client.Id, deletedBy);
 
-        result.IsSuccess.ShouldBeTrue();
-        result.Value.CompanyName.ShouldBe("New Name");
-        client.Email.ShouldBe("new@acme.test");
-        client.IsActive.ShouldBeFalse();
-        client.PreferredCurrency.ShouldBe("EUR");
+        result.Status.ShouldBe(ResultStatus.NoContent);
+        client.IsDeleted.ShouldBeTrue();
+        client.DeletedAt.ShouldNotBeNull();
+        client.DeletedBy.ShouldBe(deletedBy);
+        repository.DidNotReceive().Remove(Arg.Any<Client>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
