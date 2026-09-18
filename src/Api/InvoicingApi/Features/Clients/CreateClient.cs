@@ -37,7 +37,8 @@ public class CreateClientRequestValidator : AbstractValidator<CreateClientReques
     }
 }
 
-public class CreateClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class CreateClientHandler(
+    IRepository<Client> repository, IUnitOfWork unitOfWork, ILogger<CreateClientHandler> logger)
 {
     public async Task<Result<ClientSummaryDto>> HandleAsync(
         CreateClientRequest request, CancellationToken cancellationToken = default)
@@ -59,6 +60,8 @@ public class CreateClientHandler(IRepository<Client> repository, IUnitOfWork uni
 
         await repository.AddAsync(client, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Client {ClientId} created", client.Id);
 
         var dto = new ClientSummaryDto(client.Id, client.CompanyName, client.Email);
         return Result<ClientSummaryDto>.Created(dto, $"/clients/{client.Id}");
