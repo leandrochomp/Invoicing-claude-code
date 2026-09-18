@@ -25,7 +25,7 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
 
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
 
         return factory;
     }

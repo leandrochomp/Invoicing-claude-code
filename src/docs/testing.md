@@ -4,7 +4,7 @@
 - Framework: xUnit
 - Assertions: Shouldly
 - Mocking: NSubstitute
-- Integration: Testcontainers (not yet set up)
+- Integration: Testcontainers (required for all database-backed tests)
 
 ## Rules
 
@@ -46,4 +46,36 @@ await Should.ThrowAsync<ValidationException>(async () => await handler.Handle(re
 
 // Decimal precision (important for invoicing)
 invoice.Total.ShouldBe(1234.56m);
+```
+
+### Never use SQLite (or any in-memory database)
+- **SQLite is banned**, including `Microsoft.Data.Sqlite`, `Microsoft.EntityFrameworkCore.Sqlite`, and in-memory SQLite (`:memory:`).
+- **EF Core InMemory provider is banned** (`Microsoft.EntityFrameworkCore.InMemory`).
+- Any test that touches a database **must** use Testcontainers against the same engine as production (SQL Server, PostgreSQL, etc.).
+- Rationale: SQLite behaves differently from production databases (types, collations, constraints, transactions, concurrency, SQL dialect). Bugs slip through.
+
+### Never mock `DbContext` or `IQueryable`
+- Use Testcontainers with the real provider. Mocking EF Core hides translation bugs.
+
+## Testcontainers
+
+- One container per test *collection*, not per test, unless isolation demands otherwise.
+- Use `IAsyncLifetime` (or `WebApplicationFactory` fixtures) to start/stop containers.
+- Apply migrations against the container at startup — never `EnsureCreated()` for integration tests if migrations exist.
+- Never commit connection strings; get them from the running container.
+- Guard on Docker availability: if Docker isn't running, fail loudly — do not silently fall back to SQLite.
+
+```csharp
+// Typical pattern
+public sealed class DatabaseFixture : IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder()
+        .WithImage("postgres:17-alpine")
+        .Build();
+
+    public string ConnectionString => _db.GetConnectionString();
+
+    public Task InitializeAsync() => _db.StartAsync();
+    public Task DisposeAsync() => _db.DisposeAsync();
+}
 ```

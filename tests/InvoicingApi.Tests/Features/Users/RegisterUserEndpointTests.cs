@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
@@ -22,7 +23,7 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
 
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
 
         return factory;
     }

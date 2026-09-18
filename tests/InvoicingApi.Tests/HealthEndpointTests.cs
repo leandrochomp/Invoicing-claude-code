@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Shouldly;
 
 namespace InvoicingApi.Tests;
 
@@ -21,8 +22,8 @@ public class HealthEndpointTests(PostgresFixture postgres)
         var response = await client.GetAsync("/health");
         var body = await response.Content.ReadAsStringAsync();
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK,
+        response.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
             $"Expected the health endpoint to report Healthy, got {response.StatusCode}: {body}");
     }
 }
