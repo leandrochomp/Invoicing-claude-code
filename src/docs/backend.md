@@ -53,6 +53,9 @@ public async Task<Result<ClientSummaryDto>> GetByIdAsync(Guid id, CancellationTo
 }
 ```
 
+## Clean Code Skill Precedence
+When the `clean-code` skill suggests exceptions for error handling, prefer `Result<T>` for business outcomes as documented above. Use exceptions only for programming errors (guards) and infrastructure failures.
+
 ## Global exception middleware
 Thrown exceptions (guards, infrastructure failures, unexpected bugs) bubble up to a single exception handler. Do NOT wrap every handler in try/catch.
 - Implemented via ASP.NET Core's `IExceptionHandler` (`InvoicingApi.Infrastructure.ExceptionHandling.GlobalExceptionHandler`), registered with `AddProblemDetails()` + `AddExceptionHandler<GlobalExceptionHandler>()`, and wired first in the pipeline via `app.UseExceptionHandler()`.
