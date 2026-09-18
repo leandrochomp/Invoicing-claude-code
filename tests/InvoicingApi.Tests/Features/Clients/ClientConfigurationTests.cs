@@ -77,4 +77,18 @@ public class ClientConfigurationTests(PostgresFixture postgres)
 
         ((int)invoicesNavigation.ForeignKey.DeleteBehavior).ShouldBe((int)DeleteBehavior.Restrict);
     }
+
+    [Fact]
+    public void Configure_HasSoftDeleteQueryFilter()
+    {
+        var options = new DbContextOptionsBuilder<InvoicingDbContext>()
+            .UseNpgsql(postgres.ConnectionString)
+            .EnableServiceProviderCaching(false)
+            .Options;
+
+        using var context = new InvoicingDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(Client))!;
+
+        entity.GetDeclaredQueryFilters().ShouldNotBeEmpty();
+    }
 }

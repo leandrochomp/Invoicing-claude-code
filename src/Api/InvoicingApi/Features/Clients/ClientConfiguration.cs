@@ -52,6 +52,8 @@ public class ClientConfiguration : EntityConfiguration<Client>
         builder.Property(c => c.IsActive)
             .HasDefaultValue(true);
 
+        builder.HasQueryFilter(c => c.DeletedAt == null);
+
         builder.HasMany(c => c.Invoices)
             .WithOne(i => i.Client)
             .HasForeignKey(i => i.ClientId)

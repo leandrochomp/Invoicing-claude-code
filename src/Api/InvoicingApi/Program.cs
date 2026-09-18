@@ -10,6 +10,10 @@ var app = builder.Build();
 app.ConfigureApi();
 
 app.MapClientEndpoints();
+app.MapCreateClientEndpoint();
+app.MapUpdateClientEndpoint();
+app.MapDeleteClientEndpoint();
+app.MapListClientsEndpoint();
 
 if (app.Environment.IsEnvironment("Testing"))
 {
