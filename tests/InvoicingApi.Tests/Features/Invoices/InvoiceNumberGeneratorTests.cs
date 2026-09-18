@@ -16,7 +16,7 @@ public class InvoiceNumberGeneratorTests(PostgresFixture postgres)
             .Options;
 
         var context = new InvoicingDbContext(options);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
         return context;
     }
 
