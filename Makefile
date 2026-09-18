@@ -1,4 +1,4 @@
-.PHONY: build build-api build-web test run-api run-bff run-web migrate migrate-add clean help up down logs restore clean-containers
+.PHONY: build build-api build-web test test-web run-api run-bff run-web migrate migrate-add clean help up down logs restore clean-containers
 
 DOCKER_COMPOSE := docker compose
 SDK_IMAGE := mcr.microsoft.com/dotnet/sdk:10.0
@@ -17,6 +17,9 @@ build-web: ## Build the frontend
 
 test: ## Run all tests (in a container, no local SDK needed)
 	$(SDK_RUN) dotnet test Invoicing.Claude.Code.slnx
+
+test-web: ## Run frontend tests (Vitest)
+	cd src/web && npm test
 
 run-api: ## Run the api, its db and the Aspire dashboard via docker compose
 	$(DOCKER_COMPOSE) up --build api

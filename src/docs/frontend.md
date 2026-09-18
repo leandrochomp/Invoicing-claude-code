@@ -38,9 +38,11 @@ origins, that's the point to add an explicit CORS allow-list — never a wildcar
 - `InvoicingBff`: `http://localhost:5180` (see `src/Web/InvoicingBff/Properties/launchSettings.json`)
 - Vite dev server: `http://localhost:5173` (Vite's default — this is the one the browser talks to)
 
-## Known gaps / roadmap
+## Testing
 
-- **No frontend test framework yet.** `LoginPage` and its `api/` client have no unit/component-level
-  tests — only the BFF endpoints they talk to are covered (`tests/InvoicingBff.Tests`). Options (Vitest,
-  Jest, React Testing Library, Playwright for e2e, etc.) haven't been evaluated. **Next task**: pick one
-  and wire it in before the next component lands.
+- Framework: Vitest (`jsdom` environment) + React Testing Library, configured in `vitest.config.ts`.
+- Test files sit next to the source they cover: `Foo.tsx` → `Foo.test.tsx`, `fooApi.ts` → `fooApi.test.ts`.
+- `src/test/setup.ts` wires up `@testing-library/jest-dom` matchers and RTL's `cleanup` after each test.
+- Mock `fetch` with `vi.stubGlobal('fetch', vi.fn())` rather than mocking the `api/` module's internals —
+  it exercises the same request/response contract the BFF actually returns.
+- Run with `npm test` (`cd src/web`) or `make test-web` from the repo root.
