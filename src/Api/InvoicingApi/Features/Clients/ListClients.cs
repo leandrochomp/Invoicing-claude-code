@@ -25,6 +25,7 @@ public static class ListClientsEndpoints
     {
         app.MapGet("/clients", async (ListClientsQuery query, CancellationToken cancellationToken) =>
             (await query.ListAsync(cancellationToken)).ToApiResult())
+            .RequireAuthorization()
             .WithName("ListClients");
 
         return app;

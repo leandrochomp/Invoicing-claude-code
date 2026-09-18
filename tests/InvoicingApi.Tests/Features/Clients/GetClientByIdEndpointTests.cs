@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public class GetClientByIdEndpointTests(PostgresFixture postgres)
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var scope = factory.Services.CreateScope();
@@ -31,11 +33,22 @@ public class GetClientByIdEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await client.GetAsync($"/clients/{Guid.NewGuid()}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/clients/{Guid.NewGuid()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -61,7 +74,7 @@ public class GetClientByIdEndpointTests(PostgresFixture postgres)
             await context.SaveChangesAsync();
         }
 
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var response = await httpClient.GetAsync($"/clients/{clientEntity.Id}");
         var body = await response.Content.ReadFromJsonAsync<ClientSummaryDto>();
 

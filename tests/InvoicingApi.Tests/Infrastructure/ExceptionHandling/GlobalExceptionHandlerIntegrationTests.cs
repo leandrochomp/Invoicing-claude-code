@@ -16,6 +16,7 @@ public class GlobalExceptionHandlerIntegrationTests(PostgresFixture postgres)
             {
                 builder.UseEnvironment("Testing");
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var client = factory.CreateClient();

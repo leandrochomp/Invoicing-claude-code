@@ -1,5 +1,7 @@
+using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +19,7 @@ public class ListClientsEndpointTests(PostgresFixture postgres)
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var scope = factory.Services.CreateScope();
@@ -49,11 +52,22 @@ public class ListClientsEndpointTests(PostgresFixture postgres)
             await context.SaveChangesAsync();
         }
 
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var response = await httpClient.GetAsync("/clients");
         var body = await response.Content.ReadFromJsonAsync<List<ClientSummaryDto>>();
 
         body.ShouldNotBeNull();
         body.ShouldContain(c => c.Id == clientEntity.Id && c.CompanyName == "Acme Corp");
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/clients");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var scope = factory.Services.CreateScope();
@@ -74,7 +76,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_invoice()
     {
         await using var factory = await CreateFactoryAsync();
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.DeleteAsync($"/invoices/{Guid.NewGuid()}");
 
@@ -86,7 +88,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var invoice = await SeedInvoiceAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.DeleteAsync($"/invoices/{invoice.Id}");
         var getResponse = await httpClient.GetAsync($"/invoices/{invoice.Id}");
@@ -100,10 +102,21 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var invoice = await SeedInvoiceAsync(factory, withPayment: true);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.DeleteAsync($"/invoices/{invoice.Id}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var httpClient = factory.CreateClient();
+
+        var response = await httpClient.DeleteAsync($"/invoices/{Guid.NewGuid()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

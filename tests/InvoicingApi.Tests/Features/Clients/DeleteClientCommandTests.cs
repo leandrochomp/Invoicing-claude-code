@@ -28,7 +28,7 @@ public class DeleteClientCommandTests
         var unitOfWork = Substitute.For<IUnitOfWork>();
         var command = new DeleteClientCommand(repository, unitOfWork);
 
-        var result = await command.DeleteAsync(Guid.NewGuid(), new DeleteClientRequest(Guid.NewGuid()));
+        var result = await command.DeleteAsync(Guid.NewGuid(), Guid.NewGuid());
 
         result.Status.ShouldBe(ResultStatus.NotFound);
     }
@@ -43,7 +43,7 @@ public class DeleteClientCommandTests
         var command = new DeleteClientCommand(repository, unitOfWork);
         var deletedBy = Guid.NewGuid();
 
-        var result = await command.DeleteAsync(client.Id, new DeleteClientRequest(deletedBy));
+        var result = await command.DeleteAsync(client.Id, deletedBy);
 
         result.Status.ShouldBe(ResultStatus.NoContent);
         client.IsDeleted.ShouldBeTrue();

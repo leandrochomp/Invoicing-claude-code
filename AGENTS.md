@@ -57,6 +57,10 @@ Reference `src/docs/database.md`
 - PostgreSQL on localhost:5432.
 - Connection string from `ConnectionStrings:Default` in user secrets, never appsettings.json.
 
+### Security
+
+Reference `src/docs/security.md`
+
 ### Testing
 
 Reference `src/docs/testing.md`
