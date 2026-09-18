@@ -13,6 +13,13 @@
 - Never add suppressions (`#pragma`, `WarningsNotAsErrors`) without explicit user approval.
 - Run `make format-check` or `dotnet format Invoicing.Claude.Code.slnx --verify-no-changes` to check.
 
+## Logging
+
+### Stack
+- `ILogger<T>` for application logging
+- OpenTelemetry logging bridge for export
+- OTLP exporter to your backend Aspire Dashboard
+
 ## Error Handling
 
 Three layers, each with a distinct purpose. ProblemDetails (RFC 9457) is the **wire format** for all HTTP errors.
