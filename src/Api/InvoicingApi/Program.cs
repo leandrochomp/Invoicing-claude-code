@@ -21,6 +21,7 @@ app.MapUpdateClientEndpoint();
 app.MapDeleteClientEndpoint();
 app.MapListClientsEndpoint();
 app.MapInvoiceEndpoints();
+app.MapPaymentEndpoints();
 
 if (app.Environment.IsEnvironment("Testing"))
 {

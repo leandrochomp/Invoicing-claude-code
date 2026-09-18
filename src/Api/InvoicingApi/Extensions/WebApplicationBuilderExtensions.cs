@@ -106,6 +106,11 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddScoped<UpdateInvoiceHandler>();
         builder.Services.AddScoped<DeleteInvoiceHandler>();
 
+        builder.Services.AddScoped<PaymentQueries>();
+        builder.Services.AddScoped<CreatePaymentHandler>();
+        builder.Services.AddScoped<UpdatePaymentHandler>();
+        builder.Services.AddScoped<DeletePaymentHandler>();
+
         return builder;
     }
 }

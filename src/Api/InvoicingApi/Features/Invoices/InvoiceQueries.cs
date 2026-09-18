@@ -6,8 +6,6 @@ namespace InvoicingApi.Features.Invoices;
 
 public sealed record InvoiceItemDto(Guid Id, string Description, decimal Quantity, decimal UnitPrice, decimal TaxRate, decimal LineTotal, int SortOrder);
 
-public sealed record PaymentDto(Guid Id, decimal Amount, DateTimeOffset PaymentDate, PaymentMethod Method, string? Notes);
-
 public sealed record InvoiceDto(
     Guid Id,
     Guid ClientId,
@@ -90,6 +88,6 @@ public class InvoiceQueries(InvoicingDbContext dbContext)
             .Select(i => new InvoiceItemDto(i.Id, i.Description, i.Quantity, i.UnitPrice, i.TaxRate, i.LineTotal, i.SortOrder))
             .ToList(),
         invoice.Payments
-            .Select(p => new PaymentDto(p.Id, p.Amount, p.PaymentDate, p.Method, p.Notes))
+            .Select(PaymentQueries.ToDto)
             .ToList());
 }
