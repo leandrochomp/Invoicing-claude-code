@@ -9,7 +9,7 @@ using Shouldly;
 namespace InvoicingApi.Tests.Features.Auth;
 
 [Collection(PostgresCollection.Name)]
-public class LoginCommandTests(PostgresFixture postgres)
+public class LoginHandlerTests(PostgresFixture postgres)
 {
     private async Task<InvoicingDbContext> CreateContextAsync()
     {
@@ -50,9 +50,9 @@ public class LoginCommandTests(PostgresFixture postgres)
             Role = UserRole.User,
         });
         await context.SaveChangesAsync();
-        var command = new LoginCommand(context, CreateTokenService());
+        var handler = new LoginHandler(context, CreateTokenService());
 
-        var result = await command.LoginAsync(new LoginRequest(username, "correct-horse-battery-staple"));
+        var result = await handler.HandleAsync(new LoginRequest(username, "correct-horse-battery-staple"));
 
         result.Status.ShouldBe(ResultStatus.Ok);
         result.Value.Token.ShouldNotBeNullOrWhiteSpace();
@@ -70,9 +70,9 @@ public class LoginCommandTests(PostgresFixture postgres)
             Role = UserRole.User,
         });
         await context.SaveChangesAsync();
-        var command = new LoginCommand(context, CreateTokenService());
+        var handler = new LoginHandler(context, CreateTokenService());
 
-        var result = await command.LoginAsync(new LoginRequest(username, "wrong-password"));
+        var result = await handler.HandleAsync(new LoginRequest(username, "wrong-password"));
 
         result.Status.ShouldBe(ResultStatus.Unauthorized);
     }
@@ -81,9 +81,9 @@ public class LoginCommandTests(PostgresFixture postgres)
     public async Task Returns_unauthorized_for_unknown_username()
     {
         await using var context = await CreateContextAsync();
-        var command = new LoginCommand(context, CreateTokenService());
+        var handler = new LoginHandler(context, CreateTokenService());
 
-        var result = await command.LoginAsync(new LoginRequest("no-such-user", "whatever-password"));
+        var result = await handler.HandleAsync(new LoginRequest("no-such-user", "whatever-password"));
 
         result.Status.ShouldBe(ResultStatus.Unauthorized);
     }

@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Clients;
 
-public class CreateClientCommandTests
+public class CreateClientHandlerTests
 {
     private static CreateClientRequest ValidRequest() => new(
         CompanyName: "Acme Corp",
@@ -26,9 +26,9 @@ public class CreateClientCommandTests
     {
         var repository = Substitute.For<IRepository<Client>>();
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var command = new CreateClientCommand(repository, unitOfWork);
+        var handler = new CreateClientHandler(repository, unitOfWork);
 
-        var result = await command.CreateAsync(ValidRequest());
+        var result = await handler.HandleAsync(ValidRequest());
 
         result.Status.ShouldBe(ResultStatus.Created);
         result.Value.CompanyName.ShouldBe("Acme Corp");

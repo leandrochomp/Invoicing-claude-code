@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
 
-public class DeleteInvoiceCommandTests
+public class DeleteInvoiceHandlerTests
 {
     private static Invoice CreateInvoice() => new()
     {
@@ -22,9 +22,9 @@ public class DeleteInvoiceCommandTests
         var repository = Substitute.For<IRepository<Invoice>>();
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Invoice?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var command = new DeleteInvoiceCommand(repository, unitOfWork);
+        var handler = new DeleteInvoiceHandler(repository, unitOfWork);
 
-        var result = await command.DeleteAsync(Guid.NewGuid());
+        var result = await handler.HandleAsync(Guid.NewGuid());
 
         result.Status.ShouldBe(ResultStatus.NotFound);
     }
@@ -36,9 +36,9 @@ public class DeleteInvoiceCommandTests
         var repository = Substitute.For<IRepository<Invoice>>();
         repository.GetByIdAsync(invoice.Id, Arg.Any<CancellationToken>()).Returns(invoice);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var command = new DeleteInvoiceCommand(repository, unitOfWork);
+        var handler = new DeleteInvoiceHandler(repository, unitOfWork);
 
-        var result = await command.DeleteAsync(invoice.Id);
+        var result = await handler.HandleAsync(invoice.Id);
 
         result.IsSuccess.ShouldBeTrue();
         repository.Received(1).Remove(invoice);

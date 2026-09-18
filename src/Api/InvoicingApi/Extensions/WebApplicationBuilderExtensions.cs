@@ -90,21 +90,21 @@ public static class WebApplicationBuilderExtensions
         });
 
         builder.Services.AddScoped<JwtTokenService>();
-        builder.Services.AddScoped<RegisterUserCommand>();
-        builder.Services.AddScoped<LoginCommand>();
+        builder.Services.AddScoped<RegisterUserHandler>();
+        builder.Services.AddScoped<LoginHandler>();
 
         builder.Services.AddScoped<ClientQueries>();
-        builder.Services.AddScoped<CreateClientCommand>();
-        builder.Services.AddScoped<UpdateClientCommand>();
-        builder.Services.AddScoped<DeleteClientCommand>();
+        builder.Services.AddScoped<CreateClientHandler>();
+        builder.Services.AddScoped<UpdateClientHandler>();
+        builder.Services.AddScoped<DeleteClientHandler>();
         builder.Services.AddScoped<ListClientsQuery>();
 
         builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
         builder.Services.AddScoped<InvoiceQueries>();
-        builder.Services.AddScoped<CreateInvoiceCommand>();
-        builder.Services.AddScoped<UpdateInvoiceCommand>();
-        builder.Services.AddScoped<DeleteInvoiceCommand>();
+        builder.Services.AddScoped<CreateInvoiceHandler>();
+        builder.Services.AddScoped<UpdateInvoiceHandler>();
+        builder.Services.AddScoped<DeleteInvoiceHandler>();
 
         return builder;
     }

@@ -35,18 +35,10 @@ public sealed class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequ
     }
 }
 
-public class CreateInvoiceCommand(InvoicingDbContext dbContext)
+public class CreateInvoiceHandler(InvoicingDbContext dbContext)
 {
-    private static readonly CreateInvoiceValidator Validator = new();
-
-    public async Task<Result<InvoiceDto>> CreateAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<InvoiceDto>> HandleAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await Validator.ValidateAsync(request, cancellationToken);
-        if (!validation.IsValid)
-        {
-            return Result<InvoiceDto>.Invalid(validation.ToValidationErrors());
-        }
-
         var clientExists = await dbContext.Clients.AnyAsync(c => c.Id == request.ClientId, cancellationToken);
         if (!clientExists)
         {

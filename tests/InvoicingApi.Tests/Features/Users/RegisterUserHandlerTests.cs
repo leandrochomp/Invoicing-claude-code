@@ -7,7 +7,7 @@ using Shouldly;
 namespace InvoicingApi.Tests.Features.Users;
 
 [Collection(PostgresCollection.Name)]
-public class RegisterUserCommandTests(PostgresFixture postgres)
+public class RegisterUserHandlerTests(PostgresFixture postgres)
 {
     private async Task<InvoicingDbContext> CreateContextAsync()
     {
@@ -30,10 +30,10 @@ public class RegisterUserCommandTests(PostgresFixture postgres)
     public async Task Creates_user_with_default_role_and_hashed_password()
     {
         await using var context = await CreateContextAsync();
-        var command = new RegisterUserCommand(context);
+        var handler = new RegisterUserHandler(context);
         var request = ValidRequest();
 
-        var result = await command.RegisterAsync(request);
+        var result = await handler.HandleAsync(request);
 
         result.Status.ShouldBe(ResultStatus.Created);
         result.Value.Username.ShouldBe(request.Username);
@@ -48,11 +48,11 @@ public class RegisterUserCommandTests(PostgresFixture postgres)
     public async Task Returns_conflict_for_duplicate_username()
     {
         await using var context = await CreateContextAsync();
-        var command = new RegisterUserCommand(context);
+        var handler = new RegisterUserHandler(context);
         var request = ValidRequest();
 
-        (await command.RegisterAsync(request)).Status.ShouldBe(ResultStatus.Created);
-        var result = await command.RegisterAsync(request);
+        (await handler.HandleAsync(request)).Status.ShouldBe(ResultStatus.Created);
+        var result = await handler.HandleAsync(request);
 
         result.Status.ShouldBe(ResultStatus.Conflict);
     }

@@ -5,9 +5,9 @@ using Shared.Data;
 
 namespace InvoicingApi.Features.Invoices;
 
-public class DeleteInvoiceCommand(IRepository<Invoice> repository, IUnitOfWork unitOfWork)
+public class DeleteInvoiceHandler(IRepository<Invoice> repository, IUnitOfWork unitOfWork)
 {
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var invoice = await repository.GetByIdAsync(id, cancellationToken);
         if (invoice is null)

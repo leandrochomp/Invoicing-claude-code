@@ -6,9 +6,9 @@ using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
 
-public class DeleteClientCommand(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class DeleteClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
 {
-    public async Task<Result> DeleteAsync(
+    public async Task<Result> HandleAsync(
         Guid id, Guid deletedBy, CancellationToken cancellationToken = default)
     {
         Guard.Against.Default(id, nameof(id));
@@ -34,14 +34,14 @@ public static class DeleteClientEndpoints
         app.MapDelete("/clients/{id:guid}", async (
             Guid id,
             ClaimsPrincipal user,
-            DeleteClientCommand command,
+            DeleteClientHandler handler,
             CancellationToken cancellationToken) =>
         {
             // RequireAuthorization guarantees an authenticated caller, whose token always carries
             // a NameIdentifier claim (set by JwtTokenService), so this claim is never null here.
             var deletedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            return (await command.DeleteAsync(id, deletedBy, cancellationToken)).ToApiResult();
+            return (await handler.HandleAsync(id, deletedBy, cancellationToken)).ToApiResult();
         })
         .RequireAuthorization("AdminOnly")
         .WithName("DeleteClient");

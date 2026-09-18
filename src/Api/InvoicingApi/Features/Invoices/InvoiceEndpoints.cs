@@ -1,4 +1,5 @@
 using InvoicingApi.Extensions;
+using InvoicingApi.Infrastructure.Validation;
 
 namespace InvoicingApi.Features.Invoices;
 
@@ -6,13 +7,14 @@ public static class InvoiceEndpoints
 {
     public static IEndpointRouteBuilder MapInvoiceEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/invoices", async (CreateInvoiceRequest request, CreateInvoiceCommand command, CancellationToken cancellationToken) =>
-                (await command.CreateAsync(request, cancellationToken)).ToApiResult())
+        app.MapPost("/invoices", async (CreateInvoiceRequest request, CreateInvoiceHandler handler, CancellationToken cancellationToken) =>
+                (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
+            .AddEndpointFilter<ValidationFilter<CreateInvoiceRequest>>()
             .RequireAuthorization()
             .WithName("CreateInvoice")
             .WithSummary("Create a new invoice")
             .Produces<InvoiceDto>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest);
+            .ProducesValidationProblem();
 
         app.MapGet("/invoices/{id:guid}", async (Guid id, InvoiceQueries queries, CancellationToken cancellationToken) =>
                 (await queries.GetByIdAsync(id, cancellationToken)).ToApiResult())
@@ -35,18 +37,19 @@ public static class InvoiceEndpoints
             .WithSummary("List invoices, optionally filtered by client or status")
             .Produces<InvoiceListResponse>();
 
-        app.MapPut("/invoices/{id:guid}", async (Guid id, UpdateInvoiceRequest request, UpdateInvoiceCommand command, CancellationToken cancellationToken) =>
-                (await command.UpdateAsync(id, request, cancellationToken)).ToApiResult())
+        app.MapPut("/invoices/{id:guid}", async (Guid id, UpdateInvoiceRequest request, UpdateInvoiceHandler handler, CancellationToken cancellationToken) =>
+                (await handler.HandleAsync(id, request, cancellationToken)).ToApiResult())
+            .AddEndpointFilter<ValidationFilter<UpdateInvoiceRequest>>()
             .RequireAuthorization()
             .WithName("UpdateInvoice")
             .WithSummary("Update an existing invoice")
             .Produces<InvoiceDto>()
-            .Produces(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .Produces(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status409Conflict);
 
-        app.MapDelete("/invoices/{id:guid}", async (Guid id, DeleteInvoiceCommand command, CancellationToken cancellationToken) =>
-                (await command.DeleteAsync(id, cancellationToken)).ToApiResult())
+        app.MapDelete("/invoices/{id:guid}", async (Guid id, DeleteInvoiceHandler handler, CancellationToken cancellationToken) =>
+                (await handler.HandleAsync(id, cancellationToken)).ToApiResult())
             .RequireAuthorization()
             .WithName("DeleteInvoice")
             .WithSummary("Delete an invoice")

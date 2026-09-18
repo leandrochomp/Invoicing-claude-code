@@ -1,6 +1,7 @@
 using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
+using InvoicingApi.Infrastructure.Validation;
 using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
@@ -36,9 +37,9 @@ public class CreateClientRequestValidator : AbstractValidator<CreateClientReques
     }
 }
 
-public class CreateClientCommand(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class CreateClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
 {
-    public async Task<Result<ClientSummaryDto>> CreateAsync(
+    public async Task<Result<ClientSummaryDto>> HandleAsync(
         CreateClientRequest request, CancellationToken cancellationToken = default)
     {
         var client = new Client
@@ -70,20 +71,14 @@ public static class CreateClientEndpoints
     {
         app.MapPost("/clients", async (
             CreateClientRequest request,
-            IValidator<CreateClientRequest> validator,
-            CreateClientCommand command,
+            CreateClientHandler handler,
             CancellationToken cancellationToken) =>
-        {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                return Results.ValidationProblem(validationResult.ToDictionary());
-            }
-
-            return (await command.CreateAsync(request, cancellationToken)).ToApiResult();
-        })
+                (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
+        .AddEndpointFilter<ValidationFilter<CreateClientRequest>>()
         .RequireAuthorization()
-        .WithName("CreateClient");
+        .WithName("CreateClient")
+        .Produces<ClientSummaryDto>(StatusCodes.Status201Created)
+        .ProducesValidationProblem();
 
         return app;
     }

@@ -53,6 +53,27 @@ public async Task<Result<ClientSummaryDto>> GetByIdAsync(Guid id, CancellationTo
 }
 ```
 
+## Minimal API Endpoints
+
+- Endpoints are thin HTTP adapters: bind request, delegate to a handler, map result to `IResult`. No business logic, no repository calls, no `DbContext` in the lambda.
+- The handler class is named `XxxHandler`, never `XxxCommand`. A *command* is the message (record); the class that processes it is a **handler**. Even when injected directly (no MediatR), name it `CreateClientHandler` and expose `HandleAsync`.
+- Validation runs in a `ValidationFilter<T>` endpoint filter, attached with `.AddEndpointFilter<ValidationFilter<T>>()`. Do not call `IValidator<T>.ValidateAsync` inside the endpoint body — it must be declarative so it cannot be forgotten.
+- Write endpoints declare their success status: `Results.Created(...)` (201 + `Location`) for POST-create, with `.Produces<T>(StatusCodes.Status201Created)` and `.ProducesValidationProblem()` for OpenAPI.
+- Endpoints are registered via `MapXxxEndpoint(this IEndpointRouteBuilder app)` per feature. Never register endpoints inline in `Program.cs`.
+
+```csharp
+app.MapPost("/clients", async (
+    CreateClientRequest request,
+    CreateClientHandler handler,
+    CancellationToken ct) =>
+        (await handler.HandleAsync(request, ct)).ToApiResult())
+.AddEndpointFilter<ValidationFilter<CreateClientRequest>>()
+.RequireAuthorization()
+.WithName("CreateClient")
+.Produces<ClientSummaryDto>(StatusCodes.Status201Created)
+.ProducesValidationProblem();
+```
+
 ## Clean Code Skill Precedence
 When the `clean-code` skill suggests exceptions for error handling, prefer `Result<T>` for business outcomes as documented above. Use exceptions only for programming errors (guards) and infrastructure failures.
 

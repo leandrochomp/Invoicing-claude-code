@@ -2,6 +2,7 @@ using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Data;
+using InvoicingApi.Infrastructure.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Auth;
@@ -19,9 +20,9 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     }
 }
 
-public class LoginCommand(InvoicingDbContext dbContext, JwtTokenService tokenService)
+public class LoginHandler(InvoicingDbContext dbContext, JwtTokenService tokenService)
 {
-    public async Task<Result<LoginResponse>> LoginAsync(
+    public async Task<Result<LoginResponse>> HandleAsync(
         LoginRequest request, CancellationToken cancellationToken = default)
     {
         var user = await dbContext.Users
@@ -43,20 +44,13 @@ public static class LoginEndpoints
     {
         app.MapPost("/auth/login", async (
             LoginRequest request,
-            IValidator<LoginRequest> validator,
-            LoginCommand command,
+            LoginHandler handler,
             CancellationToken cancellationToken) =>
-        {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                return Results.ValidationProblem(validationResult.ToDictionary());
-            }
-
-            return (await command.LoginAsync(request, cancellationToken)).ToApiResult();
-        })
+                (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
+        .AddEndpointFilter<ValidationFilter<LoginRequest>>()
         .RequireRateLimiting("AuthPolicy")
-        .WithName("Login");
+        .WithName("Login")
+        .ProducesValidationProblem();
 
         return app;
     }

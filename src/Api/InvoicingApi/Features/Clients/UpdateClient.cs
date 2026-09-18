@@ -2,6 +2,7 @@ using Ardalis.GuardClauses;
 using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
+using InvoicingApi.Infrastructure.Validation;
 using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
@@ -38,9 +39,9 @@ public class UpdateClientRequestValidator : AbstractValidator<UpdateClientReques
     }
 }
 
-public class UpdateClientCommand(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class UpdateClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
 {
-    public async Task<Result<ClientSummaryDto>> UpdateAsync(
+    public async Task<Result<ClientSummaryDto>> HandleAsync(
         Guid id, UpdateClientRequest request, CancellationToken cancellationToken = default)
     {
         Guard.Against.Default(id, nameof(id));
@@ -77,20 +78,13 @@ public static class UpdateClientEndpoints
         app.MapPut("/clients/{id:guid}", async (
             Guid id,
             UpdateClientRequest request,
-            IValidator<UpdateClientRequest> validator,
-            UpdateClientCommand command,
+            UpdateClientHandler handler,
             CancellationToken cancellationToken) =>
-        {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                return Results.ValidationProblem(validationResult.ToDictionary());
-            }
-
-            return (await command.UpdateAsync(id, request, cancellationToken)).ToApiResult();
-        })
+                (await handler.HandleAsync(id, request, cancellationToken)).ToApiResult())
+        .AddEndpointFilter<ValidationFilter<UpdateClientRequest>>()
         .RequireAuthorization()
-        .WithName("UpdateClient");
+        .WithName("UpdateClient")
+        .ProducesValidationProblem();
 
         return app;
     }
