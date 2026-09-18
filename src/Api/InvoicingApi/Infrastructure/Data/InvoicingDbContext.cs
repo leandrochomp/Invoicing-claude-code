@@ -1,5 +1,6 @@
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Infrastructure.Data;
@@ -10,6 +11,7 @@ public class InvoicingDbContext(DbContextOptions<InvoicingDbContext> options) : 
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

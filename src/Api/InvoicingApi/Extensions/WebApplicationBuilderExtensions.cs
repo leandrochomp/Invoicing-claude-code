@@ -1,9 +1,14 @@
+using System.Text;
 using FluentValidation;
+using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -41,6 +46,32 @@ public static class WebApplicationBuilderExtensions
 
         builder.Services.AddProblemDetails();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        var jwtSigningKey = builder.Configuration["Jwt:SigningKey"]
+            ?? throw new InvalidOperationException("Jwt:SigningKey is not configured.");
+
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSigningKey)),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                };
+            });
+
+        builder.Services.AddAuthorizationBuilder()
+            .AddPolicy("AdminOnly", policy => policy.RequireRole(nameof(UserRole.Admin)));
+
+        builder.Services.AddScoped<JwtTokenService>();
+        builder.Services.AddScoped<RegisterUserCommand>();
+        builder.Services.AddScoped<LoginCommand>();
 
         builder.Services.AddScoped<ClientQueries>();
         builder.Services.AddScoped<CreateClientCommand>();

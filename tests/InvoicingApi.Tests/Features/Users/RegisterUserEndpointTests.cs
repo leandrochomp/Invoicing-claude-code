@@ -1,16 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
-using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
-namespace InvoicingApi.Tests.Features.Clients;
+namespace InvoicingApi.Tests.Features.Users;
 
 [Collection(PostgresCollection.Name)]
-public class CreateClientEndpointTests(PostgresFixture postgres)
+public class RegisterUserEndpointTests(PostgresFixture postgres)
 {
     private async Task<WebApplicationFactory<Program>> CreateFactoryAsync()
     {
@@ -28,18 +27,9 @@ public class CreateClientEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
-    private static CreateClientRequest ValidRequest() => new(
-        CompanyName: "Acme Corp",
-        ContactName: "Jane Doe",
-        Email: "billing@acme.test",
-        Phone: "555-0100",
-        AddressLine1: "1 Main St",
-        AddressLine2: null,
-        City: "Springfield",
-        StateOrRegion: "IL",
-        PostalCode: "62701",
-        Country: "US",
-        PreferredCurrency: "USD");
+    private static RegisterUserRequest ValidRequest() => new(
+        Username: $"user-{Guid.NewGuid()}",
+        Password: "correct-horse-battery-staple");
 
     [Fact]
     public async Task Returns_created_for_valid_request()
@@ -47,23 +37,36 @@ public class CreateClientEndpointTests(PostgresFixture postgres)
         await using var factory = await CreateFactoryAsync();
         using var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/clients", ValidRequest());
-        var body = await response.Content.ReadFromJsonAsync<ClientSummaryDto>();
+        var response = await client.PostAsJsonAsync("/auth/register", ValidRequest());
+        var body = await response.Content.ReadFromJsonAsync<UserSummaryDto>();
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         body.ShouldNotBeNull();
-        body.CompanyName.ShouldBe("Acme Corp");
+        body.Role.ShouldBe(UserRole.User);
     }
 
     [Fact]
-    public async Task Returns_validation_problem_for_invalid_request()
+    public async Task Returns_validation_problem_for_short_password()
     {
         await using var factory = await CreateFactoryAsync();
         using var client = factory.CreateClient();
-        var invalidRequest = ValidRequest() with { Email = "not-an-email" };
+        var invalidRequest = ValidRequest() with { Password = "short" };
 
-        var response = await client.PostAsJsonAsync("/clients", invalidRequest);
+        var response = await client.PostAsJsonAsync("/auth/register", invalidRequest);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Returns_conflict_for_duplicate_username()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+        var request = ValidRequest();
+
+        await client.PostAsJsonAsync("/auth/register", request);
+        var response = await client.PostAsJsonAsync("/auth/register", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 }

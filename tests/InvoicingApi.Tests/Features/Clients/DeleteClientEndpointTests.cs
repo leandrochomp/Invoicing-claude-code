@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +20,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var scope = factory.Services.CreateScope();
@@ -27,45 +30,16 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
-    private static Task<HttpResponseMessage> DeleteWithBodyAsync(
-        HttpClient client, string requestUri, DeleteClientRequest request)
+    private static HttpClient AuthorizedClient(WebApplicationFactory<Program> factory, UserRole role)
     {
-        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, requestUri)
-        {
-            Content = JsonContent.Create(request),
-        };
-
-        return client.SendAsync(httpRequest);
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", TestJwt.CreateToken(role));
+        return client;
     }
 
-    [Fact]
-    public async Task Returns_not_found_for_unknown_client()
+    private static async Task<Client> SeedClientAsync(WebApplicationFactory<Program> factory)
     {
-        await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
-
-        var response = await DeleteWithBodyAsync(
-            client, $"/clients/{Guid.NewGuid()}", new DeleteClientRequest(Guid.NewGuid()));
-
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task Returns_validation_problem_when_deleted_by_is_empty()
-    {
-        await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
-
-        var response = await DeleteWithBodyAsync(
-            client, $"/clients/{Guid.NewGuid()}", new DeleteClientRequest(Guid.Empty));
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task Soft_deleted_client_is_excluded_from_get_and_list()
-    {
-        await using var factory = await CreateFactoryAsync();
         var clientEntity = new Client
         {
             CompanyName = "Acme Corp",
@@ -78,17 +52,69 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
             PreferredCurrency = "USD",
         };
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
-            context.Clients.Add(clientEntity);
-            await context.SaveChangesAsync();
-        }
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        context.Clients.Add(clientEntity);
+        await context.SaveChangesAsync();
 
-        using var httpClient = factory.CreateClient();
+        return clientEntity;
+    }
 
-        var deleteResponse = await DeleteWithBodyAsync(
-            httpClient, $"/clients/{clientEntity.Id}", new DeleteClientRequest(Guid.NewGuid()));
+    [Fact]
+    public async Task Returns_no_content_for_admin()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var clientEntity = await SeedClientAsync(factory);
+        using var client = AuthorizedClient(factory, UserRole.Admin);
+
+        var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Returns_forbidden_for_non_admin_user()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var clientEntity = await SeedClientAsync(factory);
+        using var client = AuthorizedClient(factory, UserRole.User);
+
+        var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var clientEntity = await SeedClientAsync(factory);
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Returns_not_found_for_unknown_client()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = AuthorizedClient(factory, UserRole.Admin);
+
+        var response = await client.DeleteAsync($"/clients/{Guid.NewGuid()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Soft_deleted_client_is_excluded_from_get_and_list()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var clientEntity = await SeedClientAsync(factory);
+        using var httpClient = AuthorizedClient(factory, UserRole.Admin);
+
+        var deleteResponse = await httpClient.DeleteAsync($"/clients/{clientEntity.Id}");
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         var getResponse = await httpClient.GetAsync($"/clients/{clientEntity.Id}");

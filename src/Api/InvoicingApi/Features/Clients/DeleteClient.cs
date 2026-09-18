@@ -1,28 +1,18 @@
+using System.Security.Claims;
 using Ardalis.GuardClauses;
 using Ardalis.Result;
-using FluentValidation;
 using InvoicingApi.Extensions;
-using Microsoft.AspNetCore.Mvc;
 using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
 
-public sealed record DeleteClientRequest(Guid DeletedBy);
-
-public class DeleteClientRequestValidator : AbstractValidator<DeleteClientRequest>
-{
-    public DeleteClientRequestValidator()
-    {
-        RuleFor(x => x.DeletedBy).NotEqual(Guid.Empty);
-    }
-}
-
 public class DeleteClientCommand(IRepository<Client> repository, IUnitOfWork unitOfWork)
 {
     public async Task<Result> DeleteAsync(
-        Guid id, DeleteClientRequest request, CancellationToken cancellationToken = default)
+        Guid id, Guid deletedBy, CancellationToken cancellationToken = default)
     {
         Guard.Against.Default(id, nameof(id));
+        Guard.Against.Default(deletedBy, nameof(deletedBy));
 
         var client = await repository.GetByIdAsync(id, cancellationToken);
         if (client is null)
@@ -30,7 +20,7 @@ public class DeleteClientCommand(IRepository<Client> repository, IUnitOfWork uni
             return Result.NotFound();
         }
 
-        client.SoftDelete(request.DeletedBy);
+        client.SoftDelete(deletedBy);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.NoContent();
@@ -43,19 +33,17 @@ public static class DeleteClientEndpoints
     {
         app.MapDelete("/clients/{id:guid}", async (
             Guid id,
-            [FromBody] DeleteClientRequest request,
-            IValidator<DeleteClientRequest> validator,
+            ClaimsPrincipal user,
             DeleteClientCommand command,
             CancellationToken cancellationToken) =>
         {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                return Results.ValidationProblem(validationResult.ToDictionary());
-            }
+            // RequireAuthorization guarantees an authenticated caller, whose token always carries
+            // a NameIdentifier claim (set by JwtTokenService), so this claim is never null here.
+            var deletedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            return (await command.DeleteAsync(id, request, cancellationToken)).ToApiResult();
+            return (await command.DeleteAsync(id, deletedBy, cancellationToken)).ToApiResult();
         })
+        .RequireAuthorization("AdminOnly")
         .WithName("DeleteClient");
 
         return app;

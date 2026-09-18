@@ -18,6 +18,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+                TestJwt.Apply(builder);
             });
 
         using var scope = factory.Services.CreateScope();
