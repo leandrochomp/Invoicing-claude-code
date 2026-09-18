@@ -1,3 +1,4 @@
+using FluentValidation;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Infrastructure.Data;
@@ -42,6 +43,12 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
         builder.Services.AddScoped<ClientQueries>();
+        builder.Services.AddScoped<CreateClientCommand>();
+        builder.Services.AddScoped<UpdateClientCommand>();
+        builder.Services.AddScoped<DeleteClientCommand>();
+        builder.Services.AddScoped<ListClientsQuery>();
+
+        builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
         builder.Services.AddScoped<InvoiceQueries>();
         builder.Services.AddScoped<CreateInvoiceCommand>();
