@@ -11,10 +11,12 @@ Add packages via `dotnet add package` or `npm install`. Ask first.
 
 ## Repository layout
 - `/src/Api` contains dotnet 10 backend webapi.
+- `/src/InvoicingBff` contains the dotnet 10 BFF (Backend-For-Frontend) that brokers auth between the React client and the API.
 - `/src/Shared` contains dotnet 10 class library general-purpose helpers that have no application-specific behavior.
 - `/tests/Shared.Tests` contains xUnit library.
 - `/tests/InvoicingApi.Tests` contains xUnit library.
-- `/src/Web` contains the React client.
+- `/tests/InvoicingBff.Tests` contains xUnit library.
+- `/src/web` contains the React client.
 
 ## Commands
 

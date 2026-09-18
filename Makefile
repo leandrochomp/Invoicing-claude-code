@@ -22,7 +22,7 @@ run-api: ## Run the api, its db and the Aspire dashboard via docker compose
 	$(DOCKER_COMPOSE) up --build api
 
 run-bff: ## Run the BFF (proxies auth to the api; run alongside run-api)
-	dotnet run --project src/Web/InvoicingBff
+	dotnet run --project src/InvoicingBff/InvoicingBff
 
 run-web: ## Run the React dev server
 	cd src/web && npm run dev

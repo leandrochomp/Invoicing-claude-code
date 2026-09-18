@@ -5,8 +5,8 @@
   <Folder Name="/src/Api/">
     <Project Path="src/Api/InvoicingApi/InvoicingApi.csproj" />
   </Folder>
-  <Folder Name="/src/Web/">
-    <Project Path="src/Web/InvoicingBff/InvoicingBff.csproj" />
+  <Folder Name="/src/InvoicingBff/">
+    <Project Path="src/InvoicingBff/InvoicingBff/InvoicingBff.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/InvoicingApi.Tests/InvoicingApi.Tests.csproj" />

@@ -14,7 +14,7 @@
 
 The SPA never sees or stores the InvoicingApi JWT. Instead:
 
-1. The SPA posts credentials to `InvoicingBff` (`/src/Web/InvoicingBff`), not to InvoicingApi directly.
+1. The SPA posts credentials to `InvoicingBff` (`/src/InvoicingBff/InvoicingBff`), not to InvoicingApi directly.
 2. The BFF calls InvoicingApi's `/auth/login`, and on success stores the returned JWT server-side as a
    claim inside an httpOnly, `SameSite=Strict` session cookie (`InvoicingBff.Auth`). The response the
    browser sees carries only the cookie and the username — never the token.
@@ -35,7 +35,7 @@ origins, that's the point to add an explicit CORS allow-list — never a wildcar
 ### Ports
 
 - `InvoicingApi`: `http://localhost:5112` (see `src/Api/InvoicingApi/Properties/launchSettings.json`)
-- `InvoicingBff`: `http://localhost:5180` (see `src/Web/InvoicingBff/Properties/launchSettings.json`)
+- `InvoicingBff`: `http://localhost:5180` (see `src/InvoicingBff/InvoicingBff/Properties/launchSettings.json`)
 - Vite dev server: `http://localhost:5173` (Vite's default — this is the one the browser talks to)
 
 ## Known gaps / roadmap
