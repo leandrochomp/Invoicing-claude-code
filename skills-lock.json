@@ -7,6 +7,12 @@
       "skillPath": "skills/caveman/SKILL.md",
       "computedHash": "43ab924e4422a09c24d16dc81349771513bc801c1be21077c252952fe753e6b6"
     },
+    "clean-code": {
+      "source": "sickn33/agentic-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code/SKILL.md",
+      "computedHash": "5dc34cc80c81f909fa69923bfdaa90b6579f3b9842e059be9c2378483605a00f"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
