@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using InvoicingApi.Features.Clients;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Shared.Data;
 using Shouldly;
@@ -26,7 +27,8 @@ public class CreateClientHandlerTests
     {
         var repository = Substitute.For<IRepository<Client>>();
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new CreateClientHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<CreateClientHandler>>();
+        var handler = new CreateClientHandler(repository, unitOfWork, logger);
 
         var result = await handler.HandleAsync(ValidRequest());
 
@@ -35,5 +37,6 @@ public class CreateClientHandlerTests
         result.Value.Email.ShouldBe("billing@acme.test");
         await repository.Received(1).AddAsync(Arg.Is<Client>(c => c.CompanyName == "Acme Corp"), Arg.Any<CancellationToken>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        logger.ReceivedLog(LogLevel.Information, result.Value.Id.ToString());
     }
 }
