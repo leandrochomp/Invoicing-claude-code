@@ -1,5 +1,6 @@
 using InvoicingApi.Extensions;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Invoices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,7 @@ app.MapCreateClientEndpoint();
 app.MapUpdateClientEndpoint();
 app.MapDeleteClientEndpoint();
 app.MapListClientsEndpoint();
+app.MapInvoiceEndpoints();
 
 if (app.Environment.IsEnvironment("Testing"))
 {

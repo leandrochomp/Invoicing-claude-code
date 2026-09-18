@@ -1,5 +1,6 @@
 using FluentValidation;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Invoices;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +49,11 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddScoped<ListClientsQuery>();
 
         builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+        builder.Services.AddScoped<InvoiceQueries>();
+        builder.Services.AddScoped<CreateInvoiceCommand>();
+        builder.Services.AddScoped<UpdateInvoiceCommand>();
+        builder.Services.AddScoped<DeleteInvoiceCommand>();
 
         return builder;
     }
