@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -76,7 +77,7 @@ public class GetInvoiceByIdEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_invoice()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await client.GetAsync($"/invoices/{Guid.NewGuid()}");
 
@@ -88,7 +89,7 @@ public class GetInvoiceByIdEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var invoice = await SeedInvoiceAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.GetAsync($"/invoices/{invoice.Id}");
         var body = await response.Content.ReadFromJsonAsync<InvoiceDto>();
@@ -99,5 +100,16 @@ public class GetInvoiceByIdEndpointTests(PostgresFixture postgres)
         body.Items.Count.ShouldBe(1);
         body.GrandTotal.ShouldBe(50m);
         body.Payments.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/invoices/{Guid.NewGuid()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

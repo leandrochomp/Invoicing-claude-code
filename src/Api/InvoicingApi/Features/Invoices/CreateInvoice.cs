@@ -28,6 +28,7 @@ public sealed class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequ
     {
         RuleFor(r => r.ClientId).NotEmpty();
         RuleFor(r => r.Currency).NotEmpty().Length(3);
+        RuleFor(r => r.Notes).MaximumLength(4000);
         RuleFor(r => r.DueDate).GreaterThanOrEqualTo(r => r.IssueDate);
         RuleFor(r => r.Items).NotEmpty().WithMessage("An invoice must have at least one line item.");
         RuleForEach(r => r.Items).SetValidator(new CreateInvoiceItemValidator());

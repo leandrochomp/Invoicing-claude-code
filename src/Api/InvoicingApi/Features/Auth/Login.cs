@@ -14,8 +14,8 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {
-        RuleFor(x => x.Username).NotEmpty();
-        RuleFor(x => x.Password).NotEmpty();
+        RuleFor(x => x.Username).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Password).NotEmpty().MaximumLength(200);
     }
 }
 
@@ -55,6 +55,7 @@ public static class LoginEndpoints
 
             return (await command.LoginAsync(request, cancellationToken)).ToApiResult();
         })
+        .RequireRateLimiting("AuthPolicy")
         .WithName("Login");
 
         return app;

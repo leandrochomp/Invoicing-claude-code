@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Clients;
@@ -7,6 +8,7 @@ using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
@@ -49,10 +51,15 @@ public static class WebApplicationBuilderExtensions
 
         var jwtSigningKey = builder.Configuration["Jwt:SigningKey"]
             ?? throw new InvalidOperationException("Jwt:SigningKey is not configured.");
+        if (Encoding.UTF8.GetByteCount(jwtSigningKey) < 32)
+        {
+            throw new InvalidOperationException("Jwt:SigningKey must be at least 32 bytes (256 bits) for HMACSHA256.");
+        }
 
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -68,6 +75,19 @@ public static class WebApplicationBuilderExtensions
 
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy("AdminOnly", policy => policy.RequireRole(nameof(UserRole.Admin)));
+
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("AuthPolicy", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }));
+        });
 
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddScoped<RegisterUserCommand>();

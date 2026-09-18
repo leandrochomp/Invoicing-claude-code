@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Users;
@@ -30,14 +29,6 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
-    private static HttpClient AuthorizedClient(WebApplicationFactory<Program> factory, UserRole role)
-    {
-        var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", TestJwt.CreateToken(role));
-        return client;
-    }
-
     private static async Task<Client> SeedClientAsync(WebApplicationFactory<Program> factory)
     {
         var clientEntity = new Client
@@ -65,7 +56,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
-        using var client = AuthorizedClient(factory, UserRole.Admin);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
 
         var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
 
@@ -77,7 +68,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
-        using var client = AuthorizedClient(factory, UserRole.User);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
 
@@ -100,7 +91,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = AuthorizedClient(factory, UserRole.Admin);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
 
         var response = await client.DeleteAsync($"/clients/{Guid.NewGuid()}");
 
@@ -112,7 +103,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
-        using var httpClient = AuthorizedClient(factory, UserRole.Admin);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.Admin);
 
         var deleteResponse = await httpClient.DeleteAsync($"/clients/{clientEntity.Id}");
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);

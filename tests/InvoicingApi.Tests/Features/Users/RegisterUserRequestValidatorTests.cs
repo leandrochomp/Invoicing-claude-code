@@ -40,4 +40,15 @@ public class RegisterUserRequestValidatorTests
         result.IsValid.ShouldBeFalse();
         result.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterUserRequest.Password));
     }
+
+    [Fact]
+    public void Password_longer_than_max_length_fails()
+    {
+        var request = ValidRequest() with { Password = new string('a', 201) };
+
+        var result = Validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterUserRequest.Password));
+    }
 }

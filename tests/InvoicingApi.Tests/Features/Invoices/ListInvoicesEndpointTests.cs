@@ -1,6 +1,8 @@
+using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -76,7 +78,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Draft);
         await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Sent);
         await SeedInvoiceAsync(factory, otherClientId, InvoiceStatus.Draft);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}");
 
@@ -93,7 +95,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         var clientId = await SeedClientAsync(factory);
         await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Draft);
         await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Paid);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}&status={InvoiceStatus.Paid}");
 
@@ -111,7 +113,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         {
             await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Draft);
         }
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}&page=1&pageSize=2");
 
@@ -119,5 +121,16 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         response.Items.Count.ShouldBe(2);
         response.TotalRecords.ShouldBe(3);
         response.TotalPages.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var httpClient = factory.CreateClient();
+
+        var response = await httpClient.GetAsync("/invoices");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

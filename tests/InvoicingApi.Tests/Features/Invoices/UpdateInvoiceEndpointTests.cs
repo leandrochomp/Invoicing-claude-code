@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -84,7 +85,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_invoice()
     {
         await using var factory = await CreateFactoryAsync();
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var request = new UpdateInvoiceRequest(
             Guid.NewGuid(), InvoiceStatus.Draft, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
             [new UpdateInvoiceItemRequest(null, "Widget", 1, 10m, 0, 0)]);
@@ -100,7 +101,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         await using var factory = await CreateFactoryAsync();
         var invoice = await SeedInvoiceAsync(factory);
         var keptItemId = invoice.Items.Single(i => i.Description == "Keep me").Id;
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var request = new UpdateInvoiceRequest(
             invoice.ClientId, InvoiceStatus.Sent, invoice.IssueDate, invoice.DueDate, "USD", "Updated", invoice.Version,
@@ -127,7 +128,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var invoice = await SeedInvoiceAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var staleVersion = invoice.Version + 1;
 
         var request = new UpdateInvoiceRequest(
@@ -137,5 +138,19 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         var response = await httpClient.PutAsJsonAsync($"/invoices/{invoice.Id}", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var httpClient = factory.CreateClient();
+        var request = new UpdateInvoiceRequest(
+            Guid.NewGuid(), InvoiceStatus.Draft, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
+            [new UpdateInvoiceItemRequest(null, "Widget", 1, 10m, 0, 0)]);
+
+        var response = await httpClient.PutAsJsonAsync($"/invoices/{Guid.NewGuid()}", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

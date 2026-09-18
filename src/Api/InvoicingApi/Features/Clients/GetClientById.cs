@@ -24,6 +24,7 @@ public static class ClientEndpoints
     {
         app.MapGet("/clients/{id:guid}", async (Guid id, ClientQueries queries, CancellationToken cancellationToken) =>
             (await queries.GetByIdAsync(id, cancellationToken)).ToApiResult())
+            .RequireAuthorization()
             .WithName("GetClientById");
 
         return app;

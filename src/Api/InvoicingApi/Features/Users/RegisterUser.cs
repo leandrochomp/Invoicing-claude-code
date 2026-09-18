@@ -15,7 +15,7 @@ public class RegisterUserRequestValidator : AbstractValidator<RegisterUserReques
     public RegisterUserRequestValidator()
     {
         RuleFor(x => x.Username).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(200);
     }
 }
 
@@ -64,6 +64,7 @@ public static class RegisterUserEndpoints
 
             return (await command.RegisterAsync(request, cancellationToken)).ToApiResult();
         })
+        .RequireRateLimiting("AuthPolicy")
         .WithName("RegisterUser");
 
         return app;

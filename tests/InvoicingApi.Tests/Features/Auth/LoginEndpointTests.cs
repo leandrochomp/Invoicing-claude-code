@@ -68,4 +68,21 @@ public class LoginEndpointTests(PostgresFixture postgres)
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Returns_too_many_requests_after_exceeding_the_rate_limit()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+        var request = new LoginRequest("nonexistent-user", "wrong-password");
+
+        HttpResponseMessage? lastResponse = null;
+        for (var i = 0; i < 6; i++)
+        {
+            lastResponse = await client.PostAsJsonAsync("/auth/login", request);
+        }
+
+        lastResponse.ShouldNotBeNull();
+        lastResponse.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+    }
 }

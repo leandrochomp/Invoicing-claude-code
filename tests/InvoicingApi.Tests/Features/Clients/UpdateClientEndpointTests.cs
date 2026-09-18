@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ public class UpdateClientEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await client.PutAsJsonAsync($"/clients/{Guid.NewGuid()}", ValidRequest());
 
@@ -76,7 +77,7 @@ public class UpdateClientEndpointTests(PostgresFixture postgres)
             await context.SaveChangesAsync();
         }
 
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var response = await httpClient.PutAsJsonAsync($"/clients/{clientEntity.Id}", ValidRequest());
         var body = await response.Content.ReadFromJsonAsync<ClientSummaryDto>();
 
@@ -89,11 +90,22 @@ public class UpdateClientEndpointTests(PostgresFixture postgres)
     public async Task Returns_validation_problem_for_invalid_request()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
         var invalidRequest = ValidRequest() with { CompanyName = string.Empty };
 
         var response = await client.PutAsJsonAsync($"/clients/{Guid.NewGuid()}", invalidRequest);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PutAsJsonAsync($"/clients/{Guid.NewGuid()}", ValidRequest());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

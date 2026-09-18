@@ -72,4 +72,14 @@ public class CreateInvoiceValidatorTests
 
         result.IsValid.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task Notes_longer_than_max_length_fails()
+    {
+        var request = ValidRequest() with { Notes = new string('a', 4001) };
+
+        var result = await Validator.ValidateAsync(request);
+
+        result.IsValid.ShouldBeFalse();
+    }
 }

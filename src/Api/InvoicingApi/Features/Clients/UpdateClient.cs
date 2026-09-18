@@ -89,6 +89,7 @@ public static class UpdateClientEndpoints
 
             return (await command.UpdateAsync(id, request, cancellationToken)).ToApiResult();
         })
+        .RequireAuthorization()
         .WithName("UpdateClient");
 
         return app;

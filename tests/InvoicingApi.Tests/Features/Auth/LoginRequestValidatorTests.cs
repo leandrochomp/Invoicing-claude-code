@@ -32,4 +32,22 @@ public class LoginRequestValidatorTests
         result.IsValid.ShouldBeFalse();
         result.Errors.ShouldContain(e => e.PropertyName == nameof(LoginRequest.Password));
     }
+
+    [Fact]
+    public void Username_longer_than_max_length_fails()
+    {
+        var result = Validator.Validate(new LoginRequest(new string('a', 101), "correct-horse-battery-staple"));
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(LoginRequest.Username));
+    }
+
+    [Fact]
+    public void Password_longer_than_max_length_fails()
+    {
+        var result = Validator.Validate(new LoginRequest("jane.doe", new string('a', 201)));
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(LoginRequest.Password));
+    }
 }

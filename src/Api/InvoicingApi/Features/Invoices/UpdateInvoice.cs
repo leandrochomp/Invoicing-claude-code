@@ -36,6 +36,7 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceRequ
         RuleFor(r => r.ClientId).NotEmpty();
         RuleFor(r => r.Status).IsInEnum();
         RuleFor(r => r.Currency).NotEmpty().Length(3);
+        RuleFor(r => r.Notes).MaximumLength(4000);
         RuleFor(r => r.DueDate).GreaterThanOrEqualTo(r => r.IssueDate);
         RuleFor(r => r.Version).GreaterThanOrEqualTo(0);
         RuleFor(r => r.Items).NotEmpty().WithMessage("An invoice must have at least one line item.");

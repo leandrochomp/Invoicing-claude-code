@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InvoicingApi.Features.Clients;
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -68,7 +69,7 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var client = await SeedClientAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.PostAsJsonAsync("/invoices", ValidRequest(client.Id));
         var body = await response.Content.ReadFromJsonAsync<InvoiceDto>();
@@ -88,7 +89,7 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
     public async Task Returns_bad_request_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var response = await httpClient.PostAsJsonAsync("/invoices", ValidRequest(Guid.NewGuid()));
 
@@ -100,7 +101,7 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var client = await SeedClientAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var request = ValidRequest(client.Id) with { Items = [] };
 
         var response = await httpClient.PostAsJsonAsync("/invoices", request);
@@ -113,7 +114,7 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var client = await SeedClientAsync(factory);
-        using var httpClient = factory.CreateClient();
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var responses = await Task.WhenAll(Enumerable.Range(0, 5)
             .Select(_ => httpClient.PostAsJsonAsync("/invoices", ValidRequest(client.Id))));
@@ -124,5 +125,16 @@ public class CreateInvoiceEndpointTests(PostgresFixture postgres)
         var invoiceNumbers = bodies.Select(b => b!.InvoiceNumber).ToList();
 
         invoiceNumbers.Distinct().Count().ShouldBe(invoiceNumbers.Count);
+    }
+
+    [Fact]
+    public async Task Returns_unauthorized_when_no_token_is_provided()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var httpClient = factory.CreateClient();
+
+        var response = await httpClient.PostAsJsonAsync("/invoices", ValidRequest(Guid.NewGuid()));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

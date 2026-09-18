@@ -82,6 +82,7 @@ public static class CreateClientEndpoints
 
             return (await command.CreateAsync(request, cancellationToken)).ToApiResult();
         })
+        .RequireAuthorization()
         .WithName("CreateClient");
 
         return app;
