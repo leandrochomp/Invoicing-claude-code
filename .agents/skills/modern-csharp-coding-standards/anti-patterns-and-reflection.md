@@ -48,7 +48,7 @@ public static class UserMappings
         Email: entity.EmailAddress);
 
     public static UserEntity ToEntity(this CreateUserRequest request) => new(
-        Id: Guid.NewGuid(),
+        Id: Guid.CreateVersion7(),
         FullName: request.Name,
         EmailAddress: request.Email);
 }

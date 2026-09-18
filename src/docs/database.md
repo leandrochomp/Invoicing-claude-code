@@ -1,5 +1,13 @@
 # Database
 
+## Primary Keys
+
+All entities use `Guid.CreateVersion7()` for primary keys. Never `Guid.NewGuid()`.
+
+Rationale: v7 GUIDs embed a timestamp, making them time-ordered. This keeps
+B-tree index inserts sequential instead of random, reducing page splits and
+improving write performance.
+
 ## Soft Delete (Default)
 
 All entities use soft delete by default. Never hard-delete rows.
