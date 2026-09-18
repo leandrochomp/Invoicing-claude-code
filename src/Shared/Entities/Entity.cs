@@ -6,3 +6,24 @@ public abstract class Entity
 
     public int Version { get; set; }
 }
+
+public abstract class SoftDeletableEntity : Entity
+{
+    public bool IsDeleted { get; protected set; }
+    public DateTimeOffset? DeletedAt { get; protected set; }
+    public Guid? DeletedBy { get; protected set; }
+
+    public void SoftDelete(Guid deletedBy)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTimeOffset.UtcNow;
+        DeletedBy = deletedBy;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+        DeletedBy = null;
+    }
+}

@@ -3,7 +3,7 @@ using Shared.Entities;
 
 namespace InvoicingApi.Features.Clients;
 
-public class Client : Entity
+public class Client : SoftDeletableEntity
 {
     public required string CompanyName { get; set; }
     public string? ContactName { get; set; }
@@ -20,7 +20,6 @@ public class Client : Entity
     public required string PreferredCurrency { get; set; }
 
     public bool IsActive { get; set; } = true;
-    public DateTimeOffset? DeletedAt { get; set; }
 
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

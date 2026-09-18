@@ -6,4 +6,7 @@ public static class ResultExtensions
 {
     public static Microsoft.AspNetCore.Http.IResult ToApiResult<T>(this Result<T> result) =>
         Ardalis.Result.AspNetCore.ResultExtensions.ToMinimalApiResult(result);
+
+    public static Microsoft.AspNetCore.Http.IResult ToApiResult(this Result result) =>
+        Ardalis.Result.AspNetCore.ResultExtensions.ToMinimalApiResult(result);
 }

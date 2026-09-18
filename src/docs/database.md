@@ -1,5 +1,13 @@
 # Database
 
+## Soft Delete (Default)
+
+All entities use soft delete by default. Never hard-delete rows.
+
+### Implementation
+
+Entities inherit from `SoftDeletableEntity`
+
 ## Stack
 [PostgreSQL 17](postgres:17-alpine) running in Docker. No local Postgres install.
 
