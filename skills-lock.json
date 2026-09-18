@@ -30,6 +30,24 @@
       "sourceType": "github",
       "skillPath": "skills/ponytail/SKILL.md",
       "computedHash": "210fa0831f649ce9f8a305f7b7c8cf2a0dd09ac4dd53067109941b96e7811d4e"
+    },
+    "react-performance": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/react-performance/SKILL.md",
+      "computedHash": "7b5b19e9c15a6b442fa0e7a0a1cb7ced951ab5872a96ff876b099b6bdfc9ae86"
+    },
+    "security-review": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/security-review/SKILL.md",
+      "computedHash": "6a0469eb33a482e79afe390b868714d653c20079e3f22719fb4526c5b720dc99"
+    },
+    "vite-patterns": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/vite-patterns/SKILL.md",
+      "computedHash": "cfebf85e0290f0c71645b215c33fc47dce247263a715648de8ae4c57c370e93d"
     }
   }
 }
