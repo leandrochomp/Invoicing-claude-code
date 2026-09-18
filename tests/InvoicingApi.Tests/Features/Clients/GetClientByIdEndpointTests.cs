@@ -52,14 +52,17 @@ public class GetClientByIdEndpointTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Returns_client_summary_when_found()
+    public async Task Returns_client_detail_when_found()
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = new Client
         {
             CompanyName = "Acme Corp",
+            ContactName = "Jane Doe",
             Email = "billing@acme.test",
+            Phone = "555-0100",
             AddressLine1 = "1 Main St",
+            AddressLine2 = "Suite 200",
             City = "Springfield",
             StateOrRegion = "IL",
             PostalCode = "62701",
@@ -76,11 +79,21 @@ public class GetClientByIdEndpointTests(PostgresFixture postgres)
 
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var response = await httpClient.GetAsync($"/clients/{clientEntity.Id}");
-        var body = await response.Content.ReadFromJsonAsync<ClientSummaryDto>();
+        var body = await response.Content.ReadFromJsonAsync<ClientDetailDto>();
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         body.ShouldNotBeNull();
         body.CompanyName.ShouldBe("Acme Corp");
+        body.ContactName.ShouldBe("Jane Doe");
         body.Email.ShouldBe("billing@acme.test");
+        body.Phone.ShouldBe("555-0100");
+        body.AddressLine1.ShouldBe("1 Main St");
+        body.AddressLine2.ShouldBe("Suite 200");
+        body.City.ShouldBe("Springfield");
+        body.StateOrRegion.ShouldBe("IL");
+        body.PostalCode.ShouldBe("62701");
+        body.Country.ShouldBe("US");
+        body.PreferredCurrency.ShouldBe("USD");
+        body.IsActive.ShouldBeTrue();
     }
 }

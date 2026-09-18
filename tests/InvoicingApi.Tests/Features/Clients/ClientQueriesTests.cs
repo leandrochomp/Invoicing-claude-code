@@ -33,7 +33,7 @@ public class ClientQueriesTests
     }
 
     [Fact]
-    public async Task Returns_summary_when_client_exists()
+    public async Task Returns_detail_when_client_exists()
     {
         var client = CreateClient();
         var repository = Substitute.For<IRepository<Client>>();
@@ -46,5 +46,9 @@ public class ClientQueriesTests
         result.Value.Id.ShouldBe(client.Id);
         result.Value.CompanyName.ShouldBe("Acme Corp");
         result.Value.Email.ShouldBe("billing@acme.test");
+        result.Value.AddressLine1.ShouldBe("1 Main St");
+        result.Value.City.ShouldBe("Springfield");
+        result.Value.PreferredCurrency.ShouldBe("USD");
+        result.Value.IsActive.ShouldBeTrue();
     }
 }
