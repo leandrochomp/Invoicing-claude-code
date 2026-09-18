@@ -5,7 +5,8 @@ Run from repo root unless noted.
 Prefer `make` targets over raw commands.
 
 - `make build` — build solution
-- `make test` — run tests
+- `make test` — run backend tests
+- `make test-web` — run frontend tests (Vitest)
 - `make run-api` — run the api, its db and the Aspire dashboard via docker compose
 - `make run-bff` — run the InvoicingBff (needs `run-api` running alongside it)
 - `make run-web` — run React dev server (proxies `/bff/*` to InvoicingBff in dev, see frontend.md)

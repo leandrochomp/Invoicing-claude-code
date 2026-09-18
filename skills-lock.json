@@ -48,6 +48,12 @@
       "sourceType": "github",
       "skillPath": "skills/vite-patterns/SKILL.md",
       "computedHash": "cfebf85e0290f0c71645b215c33fc47dce247263a715648de8ae4c57c370e93d"
+    },
+    "vitest-testing": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/vitest-testing/skills/vitest-testing/SKILL.md",
+      "computedHash": "2a937cd4b3ca9e062af25bfc5fb61a918d2b51db921c49c553345a48c35e30bb"
     }
   }
 }
