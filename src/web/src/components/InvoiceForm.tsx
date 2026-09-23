@@ -6,10 +6,11 @@ import type { InvoiceFormValues, InvoiceLineValues } from '../lib/invoiceLines'
 import { calculateTotals, newLine, parseNumber } from '../lib/invoiceLines'
 import { BackLink } from './BackLink'
 import { DatePicker } from './DatePicker'
-import { Field } from './Field'
+import { Field, RequiredMark } from './Field'
 
 type HeaderField = 'clientId' | 'issueDate' | 'dueDate' | 'currency' | 'notes'
 type LineField = 'description' | 'quantity' | 'unitPrice' | 'taxPercent'
+const requiredLineFields: ReadonlySet<LineField> = new Set(['description', 'unitPrice'])
 interface FormErrors {
   fields: Partial<Record<HeaderField, string>>
   items: Record<string, Partial<Record<LineField, string>>>
@@ -129,6 +130,20 @@ export function InvoiceForm({
   }
 
   function addLine() {
+    // Only open a new row once every existing row is complete; otherwise point at what's missing.
+    const items: FormErrors['items'] = {}
+    for (const line of values.items) {
+      const lineErrors = validateLine(line)
+      if (Object.keys(lineErrors).length > 0) {
+        items[line.key] = lineErrors
+      }
+    }
+    if (Object.keys(items).length > 0) {
+      setErrors((current) => ({ ...current, items }))
+      requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('.line-items [aria-invalid="true"]')?.focus())
+      return
+    }
+
     const line = newLine()
     setValues((current) => ({ ...current, items: [...current.items, line] }))
     setErrors((current) => ({ ...current, itemsMessage: undefined }))
@@ -186,7 +201,6 @@ export function InvoiceForm({
           <div>
             <BackLink label={mode === 'create' ? 'Back to invoices' : 'Back to invoice'} onClick={handleCancel} disabled={submitting} />
             <h1 id="invoice-form-title">{title}</h1>
-            <p className="page-intro">Fields marked * are required.</p>
           </div>
         </header>
 
@@ -262,9 +276,13 @@ export function InvoiceForm({
           <legend>Line items</legend>
           <div className="line-items">
             <div className="line-items-head" aria-hidden="true">
-              <span>Description</span>
+              <span>
+                Description <RequiredMark />
+              </span>
               <span>Qty</span>
-              <span>Unit price</span>
+              <span>
+                Unit price <RequiredMark />
+              </span>
               <span>Tax %</span>
               <span className="line-items-amount">Amount</span>
               <span />
@@ -288,6 +306,12 @@ export function InvoiceForm({
                       <div key={field} className={`line-item-cell line-item-${field}`}>
                         <label htmlFor={inputId} className="line-item-label">
                           {labels[field]} <span className="visually-hidden">({rowLabel})</span>
+                          {requiredLineFields.has(field) && (
+                            <>
+                              {' '}
+                              <RequiredMark />
+                            </>
+                          )}
                         </label>
                         <input
                           id={inputId}
@@ -297,6 +321,7 @@ export function InvoiceForm({
                           step={field === 'description' ? undefined : 'any'}
                           value={line[field]}
                           onChange={(event) => updateLine(line.key, field, event.target.value)}
+                          required={requiredLineFields.has(field)}
                           aria-invalid={lineErrors[field] ? true : undefined}
                           aria-describedby={lineErrors[field] ? errorId : undefined}
                         />

@@ -1,5 +1,15 @@
 import type { ReactNode } from 'react'
 
+// The input's own `required` attribute is what screen readers announce, so the asterisk and its
+// tooltip are visual only.
+export function RequiredMark() {
+  return (
+    <span className="field-required" data-tooltip="Required" aria-hidden="true">
+      *
+    </span>
+  )
+}
+
 interface FieldProps {
   id: string
   label: string
@@ -22,11 +32,11 @@ export function Field({ id, label, required, hint, error, wide, children }: Fiel
     <div className={wide ? 'field field-wide' : 'field'}>
       <label htmlFor={id}>
         {label}
-        {/* The input's own `required` attribute is what screen readers announce, so the asterisk is visual only. */}
         {required && (
-          <span className="field-required" aria-hidden="true">
-            {' '}*
-          </span>
+          <>
+            {' '}
+            <RequiredMark />
+          </>
         )}
       </label>
       {children(describedBy)}

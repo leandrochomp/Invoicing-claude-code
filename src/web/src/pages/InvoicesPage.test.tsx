@@ -129,10 +129,10 @@ describe('InvoicesPage create', () => {
     await user.type(screen.getByLabelText('Issue date *'), '01/09/2026')
     await user.clear(screen.getByLabelText('Due date *'))
     await user.type(screen.getByLabelText('Due date *'), '01/10/2026')
-    await user.type(screen.getByLabelText('Description (Line 1)'), 'Consulting')
+    await user.type(screen.getByLabelText('Description (Line 1) *'), 'Consulting')
     await user.clear(screen.getByLabelText('Quantity (Line 1)'))
     await user.type(screen.getByLabelText('Quantity (Line 1)'), '2')
-    await user.type(screen.getByLabelText('Unit price (Line 1)'), '150')
+    await user.type(screen.getByLabelText('Unit price (Line 1) *'), '150')
     await user.clear(screen.getByLabelText('Tax % (Line 1)'))
     await user.type(screen.getByLabelText('Tax % (Line 1)'), '10')
     await user.click(screen.getByRole('button', { name: 'Create draft' }))
@@ -158,8 +158,8 @@ describe('InvoicesPage create', () => {
 
     await user.selectOptions(await screen.findByLabelText('Client *'), 'client-1')
     await user.type(screen.getByLabelText('Currency *'), 'USD')
-    await user.type(screen.getByLabelText('Description (Line 1)'), 'Consulting')
-    await user.type(screen.getByLabelText('Unit price (Line 1)'), '150')
+    await user.type(screen.getByLabelText('Description (Line 1) *'), 'Consulting')
+    await user.type(screen.getByLabelText('Unit price (Line 1) *'), '150')
     await user.click(screen.getByRole('button', { name: 'Create draft' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Client 'client-1' does not exist.")
@@ -181,7 +181,7 @@ describe('InvoicesPage edit', () => {
     const user = userEvent.setup()
     render(<InvoicesPage route={{ page: 'invoices', view: 'edit', id: 'inv-1' }} />)
 
-    const description = await screen.findByLabelText('Description (Line 1)')
+    const description = await screen.findByLabelText('Description (Line 1) *')
     expect(description).toHaveValue('Consulting')
     expect(screen.getByLabelText('Tax % (Line 1)')).toHaveValue(10)
 
