@@ -20,6 +20,16 @@
 - OpenTelemetry logging bridge for export
 - OTLP exporter to your backend Aspire Dashboard
 
+### Conventions
+- Every write handler (`Create*`/`Update*`/`Delete*Handler`, login, register) injects `ILogger<THandler>` and logs:
+  - `Information` on success, with the affected entity IDs.
+  - `Warning` for each rejected business outcome (not found, conflict, concurrency, over-balance, failed login).
+  - `Error` only for failures the handler reports itself; unhandled exceptions are logged by `GlobalExceptionHandler`.
+- Read-only queries don't log; request/response telemetry comes from OpenTelemetry tracing.
+- Use message templates with PascalCase placeholders (`"Invoice {InvoiceId} deleted"`), never string interpolation.
+- Never log passwords, password hashes, or tokens. Don't log the username on a failed login either: it may be a mistyped password.
+- Tests assert on logs with `logger.ReceivedLog(LogLevel.X, fragment)` from `tests/InvoicingApi.Tests/TestLogger.cs`.
+
 ## Error Handling
 
 Three layers, each with a distinct purpose. ProblemDetails (RFC 9457) is the **wire format** for all HTTP errors.

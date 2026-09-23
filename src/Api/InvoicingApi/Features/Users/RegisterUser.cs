@@ -20,7 +20,7 @@ public class RegisterUserRequestValidator : AbstractValidator<RegisterUserReques
     }
 }
 
-public class RegisterUserHandler(InvoicingDbContext dbContext)
+public class RegisterUserHandler(InvoicingDbContext dbContext, ILogger<RegisterUserHandler> logger)
 {
     public async Task<Result<UserSummaryDto>> HandleAsync(
         RegisterUserRequest request, CancellationToken cancellationToken = default)
@@ -29,6 +29,7 @@ public class RegisterUserHandler(InvoicingDbContext dbContext)
             .AnyAsync(u => u.Username == request.Username, cancellationToken);
         if (usernameTaken)
         {
+            logger.LogWarning("Registration rejected: username {Username} is already taken", request.Username);
             return Result<UserSummaryDto>.Conflict("Username is already taken.");
         }
 
@@ -41,6 +42,8 @@ public class RegisterUserHandler(InvoicingDbContext dbContext)
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("User {UserId} registered", user.Id);
 
         var dto = new UserSummaryDto(user.Id, user.Username, user.Role);
         return Result<UserSummaryDto>.Created(dto, $"/users/{user.Id}");

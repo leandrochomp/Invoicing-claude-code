@@ -35,13 +35,14 @@ public sealed class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequ
     }
 }
 
-public class CreateInvoiceHandler(InvoicingDbContext dbContext)
+public class CreateInvoiceHandler(InvoicingDbContext dbContext, ILogger<CreateInvoiceHandler> logger)
 {
     public async Task<Result<InvoiceDto>> HandleAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
         var clientExists = await dbContext.Clients.AnyAsync(c => c.Id == request.ClientId, cancellationToken);
         if (!clientExists)
         {
+            logger.LogWarning("Client {ClientId} not found for invoice create", request.ClientId);
             return Result<InvoiceDto>.Invalid(new ValidationError
             {
                 Identifier = nameof(request.ClientId),
@@ -82,13 +83,24 @@ public class CreateInvoiceHandler(InvoicingDbContext dbContext)
             try
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
+
+                logger.LogInformation(
+                    "Invoice {InvoiceId} created with number {InvoiceNumber} for client {ClientId}",
+                    invoice.Id, invoice.InvoiceNumber, invoice.ClientId);
+
                 return Result<InvoiceDto>.Created(InvoiceQueries.ToDto(invoice), $"/invoices/{invoice.Id}");
             }
             catch (DbUpdateException ex) when (attempt < InvoiceNumberGenerator.MaxAttempts && IsInvoiceNumberConflict(ex))
             {
+                logger.LogWarning(
+                    "Invoice number {InvoiceNumber} already taken, retrying (attempt {Attempt} of {MaxAttempts})",
+                    invoiceNumber, attempt, InvoiceNumberGenerator.MaxAttempts);
                 dbContext.ChangeTracker.Clear();
             }
         }
+
+        logger.LogError(
+            "Could not allocate a unique invoice number after {MaxAttempts} attempts", InvoiceNumberGenerator.MaxAttempts);
 
         return Result<InvoiceDto>.Error("Could not allocate a unique invoice number after several attempts. Please retry.");
 

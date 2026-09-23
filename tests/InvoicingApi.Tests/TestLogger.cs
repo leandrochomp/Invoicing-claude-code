@@ -14,4 +14,13 @@ public static class TestLogger
             Arg.Is<object>(state => state.ToString()!.Contains(expectedMessageFragment)),
             Arg.Any<Exception?>(),
             Arg.Any<Func<object, Exception?, string>>());
+
+    // Asserts no log entry at any level carries the given value, e.g. user-typed credentials.
+    public static void DidNotReceiveLogContaining<T>(this ILogger<T> logger, string forbiddenFragment) =>
+        logger.DidNotReceive().Log(
+            Arg.Any<LogLevel>(),
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains(forbiddenFragment)),
+            Arg.Any<Exception?>(),
+            Arg.Any<Func<object, Exception?, string>>());
 }

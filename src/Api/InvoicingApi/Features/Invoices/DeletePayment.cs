@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Invoices;
 
-public class DeletePaymentHandler(InvoicingDbContext dbContext)
+public class DeletePaymentHandler(InvoicingDbContext dbContext, ILogger<DeletePaymentHandler> logger)
 {
     public async Task<Result> HandleAsync(Guid invoiceId, Guid id, CancellationToken cancellationToken = default)
     {
@@ -14,12 +14,14 @@ public class DeletePaymentHandler(InvoicingDbContext dbContext)
 
         if (invoice is null)
         {
+            logger.LogWarning("Invoice {InvoiceId} not found for payment {PaymentId} delete", invoiceId, id);
             return Result.NotFound();
         }
 
         var payment = invoice.Payments.FirstOrDefault(p => p.Id == id);
         if (payment is null)
         {
+            logger.LogWarning("Payment {PaymentId} not found on invoice {InvoiceId} for delete", id, invoiceId);
             return Result.NotFound();
         }
 
@@ -32,6 +34,10 @@ public class DeletePaymentHandler(InvoicingDbContext dbContext)
         PaymentStatusUpdater.Recalculate(invoice);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Payment {PaymentId} deleted from invoice {InvoiceId}; invoice status {InvoiceStatus}",
+            id, invoiceId, invoice.Status);
 
         return Result.NoContent();
     }

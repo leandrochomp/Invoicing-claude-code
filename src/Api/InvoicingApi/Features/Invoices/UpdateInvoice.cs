@@ -44,7 +44,7 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceRequ
     }
 }
 
-public class UpdateInvoiceHandler(InvoicingDbContext dbContext)
+public class UpdateInvoiceHandler(InvoicingDbContext dbContext, ILogger<UpdateInvoiceHandler> logger)
 {
     public async Task<Result<InvoiceDto>> HandleAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
@@ -54,12 +54,14 @@ public class UpdateInvoiceHandler(InvoicingDbContext dbContext)
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
         if (invoice is null)
         {
+            logger.LogWarning("Invoice {InvoiceId} not found for update", id);
             return Result<InvoiceDto>.NotFound();
         }
 
         var clientExists = await dbContext.Clients.AnyAsync(c => c.Id == request.ClientId, cancellationToken);
         if (!clientExists)
         {
+            logger.LogWarning("Client {ClientId} not found for update of invoice {InvoiceId}", request.ClientId, id);
             return Result<InvoiceDto>.Invalid(new ValidationError
             {
                 Identifier = nameof(request.ClientId),
@@ -131,8 +133,12 @@ public class UpdateInvoiceHandler(InvoicingDbContext dbContext)
         }
         catch (DbUpdateConcurrencyException)
         {
+            logger.LogWarning(
+                "Concurrency conflict updating invoice {InvoiceId} at version {Version}", id, request.Version);
             return Result<InvoiceDto>.Conflict(["The invoice was modified by another request. Reload and try again."]);
         }
+
+        logger.LogInformation("Invoice {InvoiceId} updated to version {Version}", invoice.Id, invoice.Version);
 
         return InvoiceQueries.ToDto(invoice);
     }
