@@ -5,6 +5,7 @@
 - Entities inherit `Entity` (Id: Guid, Version: int for optimistic concurrency).
 - DTOs are separate from entities. Never return entities directly.
 - EF Core configurations in `IEntityTypeConfiguration<T>`, not attributes.
+- Query through LINQ. If raw SQL is unavoidable, pass an interpolated string straight to `FromSql`/`SqlQuery<T>`/`ExecuteSql(Async)` so EF parameterizes every value. Never use the `*Raw` variants, and never build the SQL into a `string` variable first (that drops the parameterization). Identifiers (table, column, sort direction) can't be parameters: check them against an allowlist.
 - Money stored as `decimal(18,2)`. Never float/double.
 - Dates stored as UTC. `DateTimeOffset` for invoice issue dates.
 - Read the current time via injected `TimeProvider`, never `DateTime(Offset).UtcNow` in production code. Entities take the time as a parameter. Tests pin it with `Substitute.For<TimeProvider>()`.
