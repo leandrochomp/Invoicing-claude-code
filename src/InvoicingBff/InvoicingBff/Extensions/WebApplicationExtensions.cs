@@ -1,5 +1,8 @@
 using InvoicingBff.Features.Auth;
 using InvoicingBff.Features.Clients;
+using InvoicingBff.Features.Dashboard;
+using InvoicingBff.Features.Invoices;
+using InvoicingBff.Features.Payments;
 
 namespace InvoicingBff.Extensions;
 
@@ -38,6 +41,19 @@ public static class WebApplicationExtensions
         app.MapCreateClientEndpoint();
         app.MapUpdateClientEndpoint();
         app.MapDeleteClientEndpoint();
+
+        app.MapListInvoicesEndpoint();
+        app.MapGetInvoiceByIdEndpoint();
+        app.MapCreateInvoiceEndpoint();
+        app.MapUpdateInvoiceEndpoint();
+        app.MapDeleteInvoiceEndpoint();
+
+        app.MapListPaymentsEndpoint();
+        app.MapCreatePaymentEndpoint();
+        app.MapUpdatePaymentEndpoint();
+        app.MapDeletePaymentEndpoint();
+
+        app.MapGetDashboardSummaryEndpoint();
 
         return app;
     }

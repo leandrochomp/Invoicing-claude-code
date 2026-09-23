@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Dashboard;
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
@@ -110,6 +111,9 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddScoped<CreatePaymentHandler>();
         builder.Services.AddScoped<UpdatePaymentHandler>();
         builder.Services.AddScoped<DeletePaymentHandler>();
+
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddScoped<DashboardQueries>();
 
         return builder;
     }

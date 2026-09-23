@@ -1,6 +1,7 @@
 using InvoicingApi.Extensions;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Clients;
+using InvoicingApi.Features.Dashboard;
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Features.Users;
 
@@ -22,6 +23,7 @@ app.MapDeleteClientEndpoint();
 app.MapListClientsEndpoint();
 app.MapInvoiceEndpoints();
 app.MapPaymentEndpoints();
+app.MapGetDashboardSummaryEndpoint();
 
 if (app.Environment.IsEnvironment("Testing"))
 {

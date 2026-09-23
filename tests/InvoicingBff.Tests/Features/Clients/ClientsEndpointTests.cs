@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using InvoicingBff.Features.Auth;
 using InvoicingBff.Features.Clients;
 using InvoicingBff.Tests.TestSupport;
 using Shouldly;
@@ -9,8 +8,6 @@ namespace InvoicingBff.Tests.Features.Clients;
 
 public class ClientsEndpointTests
 {
-    private const string ValidLoginJson = """{"token":"fake-jwt","expiresAt":"2030-01-01T00:00:00Z"}""";
-
     private const string ClientDetailJson = """
         {"id":"11111111-1111-1111-1111-111111111111","companyName":"Acme Corp","contactName":"Jane Doe",
         "email":"billing@acme.test","phone":"555-0100","addressLine1":"1 Main St","addressLine2":null,
@@ -38,12 +35,12 @@ public class ClientsEndpointTests
             if (request.RequestUri!.AbsolutePath == "/clients")
             {
                 receivedAuthHeader = request.Headers.Authorization?.ToString();
-                return JsonResponse(HttpStatusCode.OK, "[]");
+                return BffTestClient.JsonResponse(HttpStatusCode.OK, "[]");
             }
 
-            return JsonResponse(HttpStatusCode.OK, ValidLoginJson);
+            return BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson);
         });
-        using var client = await AuthenticatedClientAsync(factory);
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.GetAsync("/bff/clients");
 
@@ -56,9 +53,9 @@ public class ClientsEndpointTests
     {
         var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == $"/clients/{id}"
-            ? JsonResponse(HttpStatusCode.OK, ClientDetailJson)
-            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+            ? BffTestClient.JsonResponse(HttpStatusCode.OK, ClientDetailJson)
+            : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.GetAsync($"/bff/clients/{id}");
 
@@ -74,8 +71,8 @@ public class ClientsEndpointTests
     {
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath.StartsWith("/clients/", StringComparison.Ordinal)
             ? new HttpResponseMessage(HttpStatusCode.NotFound)
-            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+            : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.GetAsync($"/bff/clients/{Guid.NewGuid()}");
 
@@ -85,8 +82,8 @@ public class ClientsEndpointTests
     [Fact]
     public async Task CreateClient_WithInvalidBody_ReturnsValidationProblem()
     {
-        using var factory = new BffTestFactory(_ => JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+        using var factory = new BffTestFactory(_ => BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.PostAsJsonAsync("/bff/clients", new CreateClientRequest(
             CompanyName: "",
@@ -109,9 +106,9 @@ public class ClientsEndpointTests
     {
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == "/clients"
             && request.Method == HttpMethod.Post
-                ? JsonResponse(HttpStatusCode.Created, """{"id":"11111111-1111-1111-1111-111111111111","companyName":"Acme Corp","email":"billing@acme.test"}""")
-                : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+                ? BffTestClient.JsonResponse(HttpStatusCode.Created, """{"id":"11111111-1111-1111-1111-111111111111","companyName":"Acme Corp","email":"billing@acme.test"}""")
+                : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.PostAsJsonAsync("/bff/clients", new CreateClientRequest(
             CompanyName: "Acme Corp",
@@ -135,9 +132,9 @@ public class ClientsEndpointTests
         var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == $"/clients/{id}"
             && request.Method == HttpMethod.Put
-                ? JsonResponse(HttpStatusCode.OK, """{"id":"11111111-1111-1111-1111-111111111111","companyName":"Acme Corp","email":"billing@acme.test"}""")
-                : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+                ? BffTestClient.JsonResponse(HttpStatusCode.OK, """{"id":"11111111-1111-1111-1111-111111111111","companyName":"Acme Corp","email":"billing@acme.test"}""")
+                : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.PutAsJsonAsync($"/bff/clients/{id}", new UpdateClientRequest(
             CompanyName: "Acme Corp",
@@ -162,8 +159,8 @@ public class ClientsEndpointTests
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath.StartsWith("/clients/", StringComparison.Ordinal)
             && request.Method == HttpMethod.Delete
                 ? new HttpResponseMessage(HttpStatusCode.Forbidden)
-                : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+                : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.DeleteAsync($"/bff/clients/{Guid.NewGuid()}");
 
@@ -176,8 +173,8 @@ public class ClientsEndpointTests
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath.StartsWith("/clients/", StringComparison.Ordinal)
             && request.Method == HttpMethod.Delete
                 ? new HttpResponseMessage(HttpStatusCode.NoContent)
-                : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+                : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.DeleteAsync($"/bff/clients/{Guid.NewGuid()}");
 
@@ -189,33 +186,13 @@ public class ClientsEndpointTests
     {
         using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == "/clients"
             ? throw new HttpRequestException("connection refused")
-            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedClientAsync(factory);
+            : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.GetAsync("/bff/clients");
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
     }
-
-    private static async Task<HttpClient> AuthenticatedClientAsync(BffTestFactory factory)
-    {
-        var client = factory.CreateClient();
-        var loginResponse = await client.PostAsJsonAsync("/bff/login", new LoginRequest("alice", "correct-password"));
-        client.DefaultRequestHeaders.Add("Cookie", ExtractSessionCookie(loginResponse));
-        return client;
-    }
-
-    private static string ExtractSessionCookie(HttpResponseMessage response)
-    {
-        response.Headers.TryGetValues("Set-Cookie", out var cookies).ShouldBeTrue();
-        var cookie = cookies!.First(c => c.StartsWith("InvoicingBff.Auth=", StringComparison.Ordinal));
-        return cookie[..cookie.IndexOf(';')];
-    }
-
-    private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string json) => new(statusCode)
-    {
-        Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
-    };
 
     private sealed record ClientDetail(Guid Id, string CompanyName, string Email);
 }
