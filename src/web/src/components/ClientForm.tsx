@@ -178,6 +178,7 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
             }
             onBlur={() => handleBlur(name)}
             maxLength={name === 'preferredCurrency' ? 3 : undefined}
+            className={name === 'preferredCurrency' ? 'input-code' : undefined}
             required={rule.required}
             aria-invalid={errors[name] ? true : undefined}
             aria-describedby={describedBy}

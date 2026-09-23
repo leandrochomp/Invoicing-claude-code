@@ -341,7 +341,10 @@ h1 {
   visibility: visible;
 }
 
-.field input:not([type='checkbox']) {
+.field input:not([type='checkbox']),
+.field select,
+.field textarea,
+.line-item input {
   box-sizing: border-box;
   width: 100%;
   padding: 0.5625rem 0.75rem;
@@ -356,21 +359,33 @@ h1 {
     box-shadow 150ms ease-out;
 }
 
-.field input:not([type='checkbox']):hover {
+.field input:not([type='checkbox']):hover,
+.field select:hover,
+.field textarea:hover,
+.line-item input:hover {
   border-color: var(--text-muted);
 }
 
-.field input:focus-visible {
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.line-item input:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-.field input[aria-invalid='true'] {
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'],
+.line-item input[aria-invalid='true'] {
   border-color: var(--danger);
 }
 
-.field input[aria-invalid='true']:focus-visible {
+.field input[aria-invalid='true']:focus-visible,
+.field select[aria-invalid='true']:focus-visible,
+.field textarea[aria-invalid='true']:focus-visible,
+.line-item input[aria-invalid='true']:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
@@ -446,12 +461,6 @@ h1 {
 
 .date-picker-popover .rdp-chevron {
   fill: var(--text-muted);
-}
-
-#preferredCurrency {
-  max-width: 8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .field-hint,
@@ -624,7 +633,7 @@ h1 {
   cursor: not-allowed;
 }
 
-/* Clients list */
+/* Data tables (clients, invoices, payments, line items) */
 
 .data-table {
   width: 100%;
@@ -908,35 +917,10 @@ p.panel.panel-empty {
   gap: 0.75rem;
 }
 
-/* Form controls beyond text inputs */
-
-.field select,
-.field textarea {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.5625rem 0.75rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 1rem;
-}
+/* Form controls beyond text inputs (base look is shared with inputs above) */
 
 .field textarea {
   resize: vertical;
-}
-
-.field select:focus-visible,
-.field textarea:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.field select[aria-invalid='true'],
-.field textarea[aria-invalid='true'] {
-  border-color: var(--danger);
 }
 
 .input-code {
@@ -1074,30 +1058,13 @@ p.panel.panel-empty {
 }
 
 .line-item input {
-  box-sizing: border-box;
-  width: 100%;
   padding: 0.5rem 0.625rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
   font-size: 0.9375rem;
 }
 
 .line-item input[type='number'] {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-.line-item input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.line-item input[aria-invalid='true'] {
-  border-color: var(--danger);
 }
 
 .line-items-amount {
@@ -1408,6 +1375,9 @@ p.panel.panel-empty {
 
 @media (prefers-reduced-motion: reduce) {
   .field input,
+  .field select,
+  .field textarea,
+  .line-item input,
   .button-primary,
   .button-secondary {
     transition: none;
