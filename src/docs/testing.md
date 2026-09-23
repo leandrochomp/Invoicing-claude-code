@@ -5,6 +5,7 @@
 - Assertions: Shouldly
 - Mocking: NSubstitute
 - Integration: Testcontainers (required for all database-backed tests)
+- Browser automation: `playwright-cli` skill (see "Browser automation" below)
 
 ## Rules
 
@@ -79,3 +80,20 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public Task DisposeAsync() => _db.DisposeAsync();
 }
 ```
+
+## Browser automation
+
+Use the `playwright-cli` skill for all browser interaction. Do not use Playwright MCP — the skill loads lazily, MCP taxes every turn.
+
+### Rules
+- Never point the skill at production. Local, staging, or ephemeral only.
+- Never commit credentials, cookies, auth state, screenshots, or traces.
+- Never use `waitForTimeout`. Rely on web-first assertions and auto-waiting.
+- If a session surfaces a bug, encode it as a Playwright test — don't leave it in chat history.
+
+### Playwright (the framework)
+- Keep Playwright E2E tests in a separate project from xUnit tests.
+- In Playwright files, use Playwright's `expect` — not Shouldly. The Shouldly rule governs xUnit projects.
+- Moq, FluentAssertions, and SQLite bans apply here too.
+- Prefer `getByRole` / `getByLabel` / `getByTestId`. CSS/XPath is a last resort.
+- Database-backed E2E tests use Testcontainers, same as integration tests.
