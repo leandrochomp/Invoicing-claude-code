@@ -104,3 +104,4 @@ Use the `playwright-cli` skill for all browser interaction. Do not use Playwrigh
 - Credentials come from `E2E_USERNAME` / `E2E_PASSWORD`; `auth.setup.ts` signs in once and saves
   the session to `tests/e2e/.auth/` (gitignored) for the other specs.
 - Specs that create data use unique names, since they write to the dev database.
+- Shared steps (add a client, create an invoice) live in `tests/e2e/tests/helpers.ts`.
