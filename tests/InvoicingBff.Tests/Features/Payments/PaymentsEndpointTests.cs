@@ -47,15 +47,19 @@ public class PaymentsEndpointTests
     }
 
     [Fact]
-    public async Task CreatePayment_WithNonPositiveAmount_ReturnsValidationProblem()
+    public async Task CreatePayment_WhenApiRejectsBody_PassesValidationProblemThrough()
     {
-        using var factory = new BffTestFactory(_ => JsonResponse(HttpStatusCode.OK, ValidLoginJson));
+        const string validationProblem = """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Amount":["'Amount' must be greater than '0'."]}}""";
+        using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath.EndsWith("/payments", StringComparison.Ordinal)
+            ? ProblemResponse(HttpStatusCode.BadRequest, validationProblem)
+            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
         using var client = await AuthenticatedAsync(factory);
 
         var response = await client.PostAsJsonAsync($"/bff/invoices/{InvoiceId}/payments",
             new CreatePaymentRequest(0m, PaidOn, PaymentMethod.Card, Notes: null));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldBe(validationProblem);
     }
 
     [Fact]

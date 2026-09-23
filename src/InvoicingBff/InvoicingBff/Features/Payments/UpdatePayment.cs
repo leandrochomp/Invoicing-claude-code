@@ -1,23 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using FluentValidation;
 using InvoicingBff.Infrastructure.Http;
-using InvoicingBff.Infrastructure.Validation;
 
 namespace InvoicingBff.Features.Payments;
 
 public sealed record UpdatePaymentRequest(decimal Amount, DateTimeOffset PaymentDate, PaymentMethod Method, string? Notes, int Version);
-
-public class UpdatePaymentRequestValidator : AbstractValidator<UpdatePaymentRequest>
-{
-    public UpdatePaymentRequestValidator()
-    {
-        RuleFor(r => r.Amount).GreaterThan(0);
-        RuleFor(r => r.Method).IsInEnum();
-        RuleFor(r => r.Notes).MaximumLength(500);
-        RuleFor(r => r.Version).GreaterThanOrEqualTo(0);
-    }
-}
 
 public class UpdatePaymentHandler(HttpClient invoicingApiClient, ILogger<UpdatePaymentHandler> logger)
 {
@@ -39,7 +26,6 @@ public static class UpdatePaymentEndpoints
             UpdatePaymentHandler handler,
             CancellationToken cancellationToken) =>
                 await handler.HandleAsync(invoiceId, id, request, cancellationToken))
-        .AddEndpointFilter<ValidationFilter<UpdatePaymentRequest>>()
         .RequireAuthorization()
         .WithName("BffUpdatePayment")
         .ProducesValidationProblem();

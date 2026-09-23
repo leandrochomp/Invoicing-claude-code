@@ -25,6 +25,11 @@ public static class BffTestClient
         Content = new StringContent(json, Encoding.UTF8, "application/json"),
     };
 
+    public static HttpResponseMessage ProblemResponse(HttpStatusCode statusCode, string json) => new(statusCode)
+    {
+        Content = new StringContent(json, Encoding.UTF8, "application/problem+json"),
+    };
+
     private static string ExtractSessionCookie(HttpResponseMessage response)
     {
         response.Headers.TryGetValues("Set-Cookie", out var cookies).ShouldBeTrue();
