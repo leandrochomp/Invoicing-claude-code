@@ -18,6 +18,18 @@ public static class PaymentEndpoints
             .Produces(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status409Conflict);
 
+        app.MapGet("/payments", async (
+                PaymentQueries queries,
+                CancellationToken cancellationToken,
+                Guid? clientId = null,
+                int page = 1,
+                int pageSize = 50) =>
+                (await queries.ListAsync(clientId, page, pageSize, cancellationToken)).ToApiResult())
+            .RequireAuthorization()
+            .WithName("ListPayments")
+            .WithSummary("List payments across all invoices, newest first, optionally filtered by client")
+            .Produces<PaymentListResponse>();
+
         app.MapGet("/invoices/{invoiceId:guid}/payments/{id:guid}", async (Guid invoiceId, Guid id, PaymentQueries queries, CancellationToken cancellationToken) =>
                 (await queries.GetByIdAsync(invoiceId, id, cancellationToken)).ToApiResult())
             .RequireAuthorization()
