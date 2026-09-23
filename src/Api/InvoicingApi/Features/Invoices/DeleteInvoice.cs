@@ -1,27 +1,27 @@
 using Ardalis.Result;
+using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Shared.Data;
 
 namespace InvoicingApi.Features.Invoices;
 
 public class DeleteInvoiceHandler(
-    IRepository<Invoice> repository, IUnitOfWork unitOfWork, ILogger<DeleteInvoiceHandler> logger)
+    InvoicingDbContext dbContext, ILogger<DeleteInvoiceHandler> logger)
 {
     public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var invoice = await repository.GetByIdAsync(id, cancellationToken);
+        var invoice = await dbContext.Invoices.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
         if (invoice is null)
         {
             logger.LogWarning("Invoice {InvoiceId} not found for delete", id);
             return Result.NotFound();
         }
 
-        repository.Remove(invoice);
+        dbContext.Invoices.Remove(invoice);
 
         try
         {
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
         {

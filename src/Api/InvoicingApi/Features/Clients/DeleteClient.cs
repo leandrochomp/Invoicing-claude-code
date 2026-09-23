@@ -2,13 +2,13 @@ using System.Security.Claims;
 using Ardalis.GuardClauses;
 using Ardalis.Result;
 using InvoicingApi.Extensions;
-using Shared.Data;
+using InvoicingApi.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Clients;
 
 public class DeleteClientHandler(
-    IRepository<Client> repository,
-    IUnitOfWork unitOfWork,
+    InvoicingDbContext dbContext,
     TimeProvider timeProvider,
     ILogger<DeleteClientHandler> logger)
 {
@@ -18,7 +18,7 @@ public class DeleteClientHandler(
         Guard.Against.Default(id, nameof(id));
         Guard.Against.Default(deletedBy, nameof(deletedBy));
 
-        var client = await repository.GetByIdAsync(id, cancellationToken);
+        var client = await dbContext.Clients.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (client is null)
         {
             logger.LogWarning("Client {ClientId} not found for delete", id);
@@ -26,7 +26,7 @@ public class DeleteClientHandler(
         }
 
         client.SoftDelete(deletedBy, timeProvider.GetUtcNow());
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Client {ClientId} deleted by {DeletedBy}", id, deletedBy);
 

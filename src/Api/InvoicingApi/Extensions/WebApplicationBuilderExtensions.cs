@@ -17,7 +17,6 @@ using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using Shared.Data;
 
 namespace InvoicingApi.Extensions;
 
@@ -42,9 +41,6 @@ public static class WebApplicationBuilderExtensions
         // connection pool, health checks, and OpenTelemetry tracing as raw Npgsql usage.
         builder.Services.AddDbContext<InvoicingDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>()));
-
-        builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
-        builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         builder.Services.AddOpenApi();
 

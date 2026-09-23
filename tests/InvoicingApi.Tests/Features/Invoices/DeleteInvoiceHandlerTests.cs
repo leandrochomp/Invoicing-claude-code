@@ -1,31 +1,21 @@
 using Ardalis.Result;
 using InvoicingApi.Features.Invoices;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using Shared.Data;
 using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
 
-public class DeleteInvoiceHandlerTests
+[Collection(PostgresCollection.Name)]
+public class DeleteInvoiceHandlerTests(PostgresFixture postgres)
 {
-    private static Invoice CreateInvoice() => new()
-    {
-        ClientId = Guid.NewGuid(),
-        IssueDate = DateTimeOffset.UtcNow,
-        DueDate = DateTimeOffset.UtcNow.AddDays(30),
-        Currency = "USD",
-    };
-
     [Fact]
     public async Task Returns_not_found_when_invoice_does_not_exist()
     {
-        var repository = Substitute.For<IRepository<Invoice>>();
-        repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Invoice?)null);
-        var unitOfWork = Substitute.For<IUnitOfWork>();
+        await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
         var logger = Substitute.For<ILogger<DeleteInvoiceHandler>>();
-        var handler = new DeleteInvoiceHandler(repository, unitOfWork, logger);
-
+        var handler = new DeleteInvoiceHandler(context, logger);
         var id = Guid.NewGuid();
 
         var result = await handler.HandleAsync(id);
@@ -35,20 +25,31 @@ public class DeleteInvoiceHandlerTests
     }
 
     [Fact]
-    public async Task Removes_invoice_and_saves_when_it_exists()
+    public async Task Removes_invoice_when_it_exists()
     {
-        var invoice = CreateInvoice();
-        var repository = Substitute.For<IRepository<Invoice>>();
-        repository.GetByIdAsync(invoice.Id, Arg.Any<CancellationToken>()).Returns(invoice);
-        var unitOfWork = Substitute.For<IUnitOfWork>();
+        await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
+        var invoice = await InvoiceHandlerTestData.SeedInvoiceAsync(context);
         var logger = Substitute.For<ILogger<DeleteInvoiceHandler>>();
-        var handler = new DeleteInvoiceHandler(repository, unitOfWork, logger);
+        var handler = new DeleteInvoiceHandler(context, logger);
 
         var result = await handler.HandleAsync(invoice.Id);
 
         result.IsSuccess.ShouldBeTrue();
-        repository.Received(1).Remove(invoice);
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        (await context.Invoices.AsNoTracking().AnyAsync(i => i.Id == invoice.Id)).ShouldBeFalse();
         logger.ReceivedLog(LogLevel.Information, invoice.Id.ToString());
+    }
+
+    [Fact]
+    public async Task Returns_conflict_when_invoice_has_payments()
+    {
+        await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
+        var invoice = await InvoiceHandlerTestData.SeedInvoiceAsync(context, paymentAmount: 40m);
+        var logger = Substitute.For<ILogger<DeleteInvoiceHandler>>();
+        var handler = new DeleteInvoiceHandler(context, logger);
+
+        var result = await handler.HandleAsync(invoice.Id);
+
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        logger.ReceivedLog(LogLevel.Warning, invoice.Id.ToString());
     }
 }
