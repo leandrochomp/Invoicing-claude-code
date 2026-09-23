@@ -29,12 +29,19 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <p>Signed in as {username}.</p>
-        <button type="button" onClick={handleLogout}>
-          Sign out
-        </button>
+        <span className="brand">Invoicing</span>
+        <div className="app-header-user">
+          <span>
+            Signed in as <strong>{username}</strong>
+          </span>
+          <button type="button" className="button-secondary button-small" onClick={handleLogout}>
+            Sign out
+          </button>
+        </div>
       </header>
-      <ClientsPage />
+      <div className="app-content">
+        <ClientsPage />
+      </div>
     </div>
   )
 }
