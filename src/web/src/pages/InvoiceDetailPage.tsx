@@ -4,15 +4,17 @@ import { errorMessage } from '../api/http'
 import type { Invoice } from '../api/invoicesApi'
 import { InvoiceStatus, amountPaid, balanceDue, deleteInvoice, getInvoice, toUpdateInput, updateInvoice } from '../api/invoicesApi'
 import type { Payment } from '../api/paymentsApi'
-import { PaymentMethod, createPayment, deletePayment, paymentMethodLabels, updatePayment } from '../api/paymentsApi'
+import { createPayment, deletePayment, paymentMethodLabels, updatePayment } from '../api/paymentsApi'
 import { BackLink } from '../components/BackLink'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { LoadingRows } from '../components/LoadingRows'
 import type { PaymentFormValues } from '../components/PaymentForm'
 import { PaymentForm } from '../components/PaymentForm'
 import { StatusBadge } from '../components/StatusBadge'
-import { formatDate, formatInvoiceNumber, formatMoney, fromDateInput, roundMoney, todayDateInput, toDateInput } from '../lib/format'
+import { formatDate, formatInvoiceNumber, formatMoney } from '../lib/format'
 import { clientName } from '../lib/clients'
+import { taxRateToPercent } from '../lib/invoiceLines'
+import { editableMax, newPaymentFormValues, paymentToFormValues, toPaymentInput } from '../lib/payments'
 import { navigate } from '../lib/route'
 
 type PaymentPanel = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; payment: Payment }
@@ -100,12 +102,7 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
   async function handlePaymentSubmit(values: PaymentFormValues) {
     setBusy(true)
     setPaymentError(null)
-    const input = {
-      amount: Number(values.amount),
-      paymentDate: fromDateInput(values.paymentDate),
-      method: values.method,
-      notes: values.notes || null,
-    }
+    const input = toPaymentInput(values)
     try {
       if (panel.mode === 'edit') {
         await updatePayment(current.id, panel.payment.id, { ...input, version: panel.payment.version })
@@ -194,7 +191,7 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
                   <td className="data-table-primary">{item.description}</td>
                   <td className="numeric">{item.quantity}</td>
                   <td className="numeric">{money(item.unitPrice)}</td>
-                  <td className="numeric data-table-muted">{Math.round(item.taxRate * 100 * 10_000) / 10_000}%</td>
+                  <td className="numeric data-table-muted">{taxRateToPercent(item.taxRate)}%</td>
                   <td className="numeric">{money(item.lineTotal)}</td>
                 </tr>
               ))}
@@ -240,23 +237,9 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
               key={panel.mode === 'edit' ? panel.payment.id : 'new'}
               heading={panel.mode === 'edit' ? 'Edit payment' : 'Record payment'}
               currency={current.currency}
-              maxAmount={panel.mode === 'edit' ? roundMoney(balance + panel.payment.amount) : balance}
+              maxAmount={panel.mode === 'edit' ? editableMax(current, panel.payment) : balance}
               initialValues={
-                panel.mode === 'edit'
-                  ? {
-                      invoiceId: current.id,
-                      amount: String(panel.payment.amount),
-                      paymentDate: toDateInput(panel.payment.paymentDate),
-                      method: panel.payment.method,
-                      notes: panel.payment.notes ?? '',
-                    }
-                  : {
-                      invoiceId: current.id,
-                      amount: balance.toFixed(2),
-                      paymentDate: todayDateInput(),
-                      method: PaymentMethod.BankTransfer,
-                      notes: '',
-                    }
+                panel.mode === 'edit' ? paymentToFormValues(panel.payment) : newPaymentFormValues(current.id, balance)
               }
               submitLabel={panel.mode === 'edit' ? 'Save payment' : 'Record payment'}
               submitting={busy}

@@ -48,4 +48,9 @@ describe('money', () => {
   it('still shows an amount for an unrecognised currency code', () => {
     expect(formatMoney(12.5, 'ZZ')).toBe('12.50 ZZ')
   })
+
+  it('shows a plain 2-decimal number when there is no currency yet', () => {
+    expect(formatMoney(12.5, null)).toBe('12.50')
+    expect(formatMoney(3, '')).toBe('3.00')
+  })
 })

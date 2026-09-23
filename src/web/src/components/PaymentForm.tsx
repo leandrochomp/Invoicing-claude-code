@@ -50,8 +50,7 @@ function validate(values: PaymentFormValues, needsInvoice: boolean, maxAmount: n
   if (values.amount.trim() === '' || !Number.isFinite(amount) || amount <= 0) {
     errors.amount = 'Enter an amount above 0.'
   } else if (maxAmount !== null && amount > maxAmount + 1e-9) {
-    const limit = currency ? formatMoney(maxAmount, currency) : maxAmount.toFixed(2)
-    errors.amount = `This is more than the ${limit} still owed.`
+    errors.amount = `This is more than the ${formatMoney(maxAmount, currency)} still owed.`
   }
   if (!values.paymentDate) {
     errors.paymentDate = 'Enter the date the payment arrived, as DD/MM/YYYY.'

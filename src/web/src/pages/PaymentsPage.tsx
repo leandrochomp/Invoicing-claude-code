@@ -5,7 +5,7 @@ import { errorMessage } from '../api/http'
 import type { Invoice } from '../api/invoicesApi'
 import { InvoiceStatus, balanceDue, getInvoice, listInvoices } from '../api/invoicesApi'
 import type { LedgerPayment, PaymentList } from '../api/paymentsApi'
-import { PaymentMethod, createPayment, deletePayment, listPayments, paymentMethodLabels, updatePayment } from '../api/paymentsApi'
+import { createPayment, deletePayment, listPayments, paymentMethodLabels, updatePayment } from '../api/paymentsApi'
 import { BackLink } from '../components/BackLink'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { LoadingRows } from '../components/LoadingRows'
@@ -13,7 +13,8 @@ import { Pager } from '../components/Pager'
 import type { InvoiceOption, PaymentFormValues } from '../components/PaymentForm'
 import { PaymentForm } from '../components/PaymentForm'
 import { clientName } from '../lib/clients'
-import { formatDate, formatInvoiceNumber, formatMoney, fromDateInput, roundMoney, todayDateInput, toDateInput } from '../lib/format'
+import { formatDate, formatInvoiceNumber, formatMoney } from '../lib/format'
+import { editableMax, newPaymentFormValues, paymentToFormValues, toPaymentInput } from '../lib/payments'
 import type { Route } from '../lib/route'
 import { navigate } from '../lib/route'
 
@@ -53,7 +54,7 @@ function PaymentLedger() {
     try {
       // The ledger row doesn't carry the invoice balance, which bounds how much this payment may be.
       const invoice = await getInvoice(payment.invoiceId)
-      setEditing({ payment, maxAmount: roundMoney(balanceDue(invoice) + payment.amount) })
+      setEditing({ payment, maxAmount: editableMax(invoice, payment) })
     } catch (err) {
       setError(errorMessage(err, 'Failed to load the payment’s invoice.'))
     }
@@ -67,10 +68,7 @@ function PaymentLedger() {
     setFormError(null)
     try {
       await updatePayment(editing.payment.invoiceId, editing.payment.id, {
-        amount: Number(values.amount),
-        paymentDate: fromDateInput(values.paymentDate),
-        method: values.method,
-        notes: values.notes || null,
+        ...toPaymentInput(values),
         version: editing.payment.version,
       })
       setEditing(null)
@@ -118,13 +116,7 @@ function PaymentLedger() {
           heading={`Edit payment on invoice ${formatInvoiceNumber(editing.payment.invoiceNumber)}`}
           currency={editing.payment.currency}
           maxAmount={editing.maxAmount}
-          initialValues={{
-            invoiceId: editing.payment.invoiceId,
-            amount: String(editing.payment.amount),
-            paymentDate: toDateInput(editing.payment.paymentDate),
-            method: editing.payment.method,
-            notes: editing.payment.notes ?? '',
-          }}
+          initialValues={paymentToFormValues(editing.payment)}
           submitLabel="Save payment"
           submitting={busy}
           error={formError}
@@ -261,12 +253,7 @@ function RecordPayment({ invoiceId }: { invoiceId?: string }) {
     setSubmitting(true)
     setError(null)
     try {
-      await createPayment(values.invoiceId, {
-        amount: Number(values.amount),
-        paymentDate: fromDateInput(values.paymentDate),
-        method: values.method,
-        notes: values.notes || null,
-      })
+      await createPayment(values.invoiceId, toPaymentInput(values))
       navigate('/payments')
     } catch (err) {
       setError(errorMessage(err, 'Failed to record the payment.'))
@@ -307,13 +294,7 @@ function RecordPayment({ invoiceId }: { invoiceId?: string }) {
           onInvoiceChange={selectInvoice}
           currency={selected?.currency ?? null}
           maxAmount={balance}
-          initialValues={{
-            invoiceId: selected?.id ?? '',
-            amount: balance !== null ? balance.toFixed(2) : '',
-            paymentDate: todayDateInput(),
-            method: PaymentMethod.BankTransfer,
-            notes: '',
-          }}
+          initialValues={newPaymentFormValues(selected?.id ?? '', balance)}
           submitLabel="Record payment"
           submitting={submitting}
           error={error}

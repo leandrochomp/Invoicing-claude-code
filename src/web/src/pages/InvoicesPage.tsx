@@ -7,11 +7,11 @@ import { InvoiceStatus, createInvoice, getInvoice, invoiceStatusLabels, listInvo
 import { ErrorAlert } from '../components/ErrorAlert'
 import type { InvoiceFormValues } from '../lib/invoiceLines'
 import { InvoiceForm } from '../components/InvoiceForm'
-import { newLine } from '../lib/invoiceLines'
+import { invoiceToFormValues, newLine, toInvoiceInput } from '../lib/invoiceLines'
 import { LoadingRows } from '../components/LoadingRows'
 import { Pager } from '../components/Pager'
 import { StatusBadge } from '../components/StatusBadge'
-import { addDays, formatDate, formatInvoiceNumber, formatMoney, fromDateInput, todayDateInput, toDateInput } from '../lib/format'
+import { addDays, formatDate, formatInvoiceNumber, formatMoney, todayDateInput } from '../lib/format'
 import { clientName } from '../lib/clients'
 import type { Route } from '../lib/route'
 import { navigate } from '../lib/route'
@@ -173,17 +173,6 @@ function InvoiceListView({ clients }: { clients: ClientSummary[] | null }) {
   )
 }
 
-function toItemsInput(values: InvoiceFormValues) {
-  return values.items.map((line, index) => ({
-    id: line.id,
-    description: line.description,
-    quantity: Number(line.quantity),
-    unitPrice: Number(line.unitPrice),
-    taxRate: Number(line.taxPercent) / 100,
-    sortOrder: index,
-  }))
-}
-
 async function preferredCurrency(clientId: string): Promise<string | null> {
   try {
     return (await getClient(clientId)).preferredCurrency
@@ -216,14 +205,7 @@ function CreateInvoice({ clients }: { clients: ClientSummary[] }) {
     setSubmitting(true)
     setError(null)
     try {
-      const created = await createInvoice({
-        clientId: values.clientId,
-        issueDate: fromDateInput(values.issueDate),
-        dueDate: fromDateInput(values.dueDate),
-        currency: values.currency,
-        notes: values.notes || null,
-        items: toItemsInput(values),
-      })
+      const created = await createInvoice(toInvoiceInput(values))
       navigate(`/invoices/${created.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Failed to create the invoice.'))
@@ -246,25 +228,6 @@ function CreateInvoice({ clients }: { clients: ClientSummary[] }) {
   )
 }
 
-function toFormValues(invoice: Invoice): InvoiceFormValues {
-  return {
-    clientId: invoice.clientId,
-    issueDate: toDateInput(invoice.issueDate),
-    dueDate: toDateInput(invoice.dueDate),
-    currency: invoice.currency,
-    notes: invoice.notes ?? '',
-    items: invoice.items.map((item) => ({
-      ...newLine(),
-      id: item.id,
-      description: item.description,
-      quantity: String(item.quantity),
-      unitPrice: String(item.unitPrice),
-      // Rounded to strip float noise like 0.07 * 100 = 7.000000000000001.
-      taxPercent: String(Math.round(item.taxRate * 100 * 10_000) / 10_000),
-    })),
-  }
-}
-
 function EditInvoice({ id, clients }: { id: string; clients: ClientSummary[] }) {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [initialValues, setInitialValues] = useState<InvoiceFormValues | null>(null)
@@ -276,7 +239,7 @@ function EditInvoice({ id, clients }: { id: string; clients: ClientSummary[] }) 
     getInvoice(id)
       .then((loaded) => {
         setInvoice(loaded)
-        setInitialValues(toFormValues(loaded))
+        setInitialValues(invoiceToFormValues(loaded))
       })
       .catch((err) => setLoadError(errorMessage(err, 'Failed to load the invoice.')))
   }, [id])
@@ -295,17 +258,7 @@ function EditInvoice({ id, clients }: { id: string; clients: ClientSummary[] }) 
     setSubmitting(true)
     setError(null)
     try {
-      await updateInvoice(
-        id,
-        toUpdateInput(invoice, {
-          clientId: values.clientId,
-          issueDate: fromDateInput(values.issueDate),
-          dueDate: fromDateInput(values.dueDate),
-          currency: values.currency,
-          notes: values.notes || null,
-          items: toItemsInput(values),
-        }),
-      )
+      await updateInvoice(id, toUpdateInput(invoice, toInvoiceInput(values)))
       navigate(`/invoices/${id}`)
     } catch (err) {
       setError(errorMessage(err, 'Failed to save the invoice.'))
