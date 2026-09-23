@@ -51,7 +51,11 @@ export function formatDate(iso: string): string {
   return dateFormat.format(new Date(fromDateInput(toDateInput(iso))))
 }
 
-export function formatMoney(amount: number, currency: string): string {
+// Without a currency (e.g. while the code is still being typed) it's just the number to 2 places.
+export function formatMoney(amount: number, currency: string | null): string {
+  if (!currency) {
+    return amount.toFixed(2)
+  }
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount)
   } catch {

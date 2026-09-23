@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { ClientSummary } from '../api/clientsApi'
-import { formatMoney, roundMoney } from '../lib/format'
+import { formatMoney } from '../lib/format'
 import type { InvoiceFormValues, InvoiceLineValues } from '../lib/invoiceLines'
-import { calculateTotals, newLine, parseNumber } from '../lib/invoiceLines'
+import { calculateTotals, lineAmount, newLine, parseNumber } from '../lib/invoiceLines'
 import { BackLink } from './BackLink'
 import { DatePicker } from './DatePicker'
 import { Field, RequiredMark } from './Field'
@@ -41,6 +41,17 @@ function validateLine(line: InvoiceLineValues): Partial<Record<LineField, string
   return errors
 }
 
+function validateLines(lines: InvoiceLineValues[]): FormErrors['items'] {
+  const items: FormErrors['items'] = {}
+  for (const line of lines) {
+    const lineErrors = validateLine(line)
+    if (Object.keys(lineErrors).length > 0) {
+      items[line.key] = lineErrors
+    }
+  }
+  return items
+}
+
 function validate(values: InvoiceFormValues): FormErrors {
   const fields: FormErrors['fields'] = {}
   if (!values.clientId) {
@@ -61,17 +72,9 @@ function validate(values: InvoiceFormValues): FormErrors {
     fields.notes = 'Use 4000 characters or fewer.'
   }
 
-  const items: FormErrors['items'] = {}
-  for (const line of values.items) {
-    const lineErrors = validateLine(line)
-    if (Object.keys(lineErrors).length > 0) {
-      items[line.key] = lineErrors
-    }
-  }
-
   return {
     fields,
-    items,
+    items: validateLines(values.items),
     itemsMessage: values.items.length === 0 ? 'Add at least one line item.' : undefined,
   }
 }
@@ -131,13 +134,7 @@ export function InvoiceForm({
 
   function addLine() {
     // Only open a new row once every existing row is complete; otherwise point at what's missing.
-    const items: FormErrors['items'] = {}
-    for (const line of values.items) {
-      const lineErrors = validateLine(line)
-      if (Object.keys(lineErrors).length > 0) {
-        items[line.key] = lineErrors
-      }
-    }
+    const items = validateLines(values.items)
     if (Object.keys(items).length > 0) {
       setErrors((current) => ({ ...current, items }))
       requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('.line-items [aria-invalid="true"]')?.focus())
@@ -290,7 +287,7 @@ export function InvoiceForm({
             {values.items.map((line, index) => {
               const lineErrors = errors.items[line.key] ?? {}
               const rowLabel = `Line ${index + 1}`
-              const amount = roundMoney((parseNumber(line.quantity) ?? 0) * (parseNumber(line.unitPrice) ?? 0))
+              const amount = lineAmount(line)
               return (
                 <div key={line.key} className="line-item" role="group" aria-label={rowLabel}>
                   {(['description', 'quantity', 'unitPrice', 'taxPercent'] as const).map((field) => {
@@ -337,7 +334,7 @@ export function InvoiceForm({
                     <span className="line-item-label" aria-hidden="true">
                       Amount
                     </span>
-                    {currency ? formatMoney(amount, currency) : amount.toFixed(2)}
+                    {formatMoney(amount, currency)}
                   </div>
                   <div className="line-item-cell line-item-remove">
                     <button
@@ -364,15 +361,15 @@ export function InvoiceForm({
           <dl className="totals">
             <div>
               <dt>Subtotal</dt>
-              <dd>{currency ? formatMoney(totals.subTotal, currency) : totals.subTotal.toFixed(2)}</dd>
+              <dd>{formatMoney(totals.subTotal, currency)}</dd>
             </div>
             <div>
               <dt>Tax</dt>
-              <dd>{currency ? formatMoney(totals.taxTotal, currency) : totals.taxTotal.toFixed(2)}</dd>
+              <dd>{formatMoney(totals.taxTotal, currency)}</dd>
             </div>
             <div className="totals-grand">
               <dt>Total</dt>
-              <dd>{currency ? formatMoney(totals.grandTotal, currency) : totals.grandTotal.toFixed(2)}</dd>
+              <dd>{formatMoney(totals.grandTotal, currency)}</dd>
             </div>
           </dl>
         </fieldset>
