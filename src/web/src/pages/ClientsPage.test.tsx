@@ -62,7 +62,7 @@ describe('ClientsPage', () => {
     await user.type(screen.getByLabelText('Postal code'), '62702')
     await user.type(screen.getByLabelText('Country'), 'US')
     await user.type(screen.getByLabelText('Preferred currency'), 'USD')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Add client' }))
 
     await waitFor(() => expect(createClient).toHaveBeenCalledWith(
       expect.objectContaining({ companyName: 'Globex', email: 'billing@globex.test' }),
@@ -77,13 +77,13 @@ describe('ClientsPage', () => {
     render(<ClientsPage />)
     await screen.findByText('Acme Corp')
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit Acme Corp' }))
 
     expect(await screen.findByDisplayValue('Acme Corp')).toBeInTheDocument()
     expect(screen.getByLabelText('Active')).toBeChecked()
 
     await user.click(screen.getByLabelText('Active'))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(updateClient).toHaveBeenCalledWith(
       '1',
@@ -98,7 +98,7 @@ describe('ClientsPage', () => {
     render(<ClientsPage />)
     await screen.findByText('Acme Corp')
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete Acme Corp' }))
 
     await waitFor(() => expect(deleteClient).toHaveBeenCalledWith('1'))
     expect(listClients).toHaveBeenCalledTimes(2)
@@ -110,7 +110,7 @@ describe('ClientsPage', () => {
     render(<ClientsPage />)
     await screen.findByText('Acme Corp')
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete Acme Corp' }))
 
     expect(deleteClient).not.toHaveBeenCalled()
   })
@@ -138,6 +138,42 @@ describe('ClientsPage', () => {
   })
 })
 
+describe('ClientsPage states', () => {
+  it('shows an empty state with a way to add the first client', async () => {
+    vi.mocked(listClients).mockResolvedValue([])
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+
+    expect(await screen.findByRole('heading', { name: 'No clients yet' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Add your first client' }))
+
+    expect(screen.getByRole('heading', { name: 'Add client' })).toBeInTheDocument()
+  })
+
+  it('retries loading the list after an error', async () => {
+    const { ClientApiError } = await import('../api/clientsApi')
+    vi.mocked(listClients).mockRejectedValueOnce(new ClientApiError('Unable to reach the Invoicing API.'))
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('Acme Corp')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('names the client in the delete confirmation', async () => {
+    const confirm = vi.fn().mockReturnValue(false)
+    vi.stubGlobal('confirm', confirm)
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Acme Corp' }))
+
+    expect(confirm).toHaveBeenCalledWith('Delete Acme Corp? It will be removed from your client list.')
+  })
+})
+
 // Sanity check that table rows scope their actions (guards against accidental global button queries).
 describe('ClientsPage row scoping', () => {
   it('renders one action cell per client row', async () => {
@@ -145,6 +181,6 @@ describe('ClientsPage row scoping', () => {
     const row = await screen.findByText('Acme Corp')
     const tr = row.closest('tr')
     expect(tr).not.toBeNull()
-    expect(within(tr as HTMLElement).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(within(tr as HTMLElement).getByRole('button', { name: 'Edit Acme Corp' })).toBeInTheDocument()
   })
 })

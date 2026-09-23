@@ -77,4 +77,44 @@ describe('LoginPage', () => {
     resolveLogin()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Sign in' })).not.toBeDisabled())
   })
+
+  it('shows inline errors instead of calling the API when fields are empty', async () => {
+    const user = userEvent.setup()
+
+    render(<LoginPage onLoggedIn={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(login).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Username')).toHaveAccessibleDescription('Enter your username.')
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('Enter your password.')
+    expect(screen.getByLabelText('Username')).toHaveFocus()
+  })
+
+  it('toggles password visibility', async () => {
+    const user = userEvent.setup()
+
+    render(<LoginPage onLoggedIn={vi.fn()} />)
+
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
+    await user.click(screen.getByRole('button', { name: 'Show password' }))
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'Hide password' })).toBeInTheDocument()
+  })
+
+  it('keeps the username but clears and focuses the password after a failed sign-in', async () => {
+    vi.mocked(login).mockRejectedValue(new LoginError('Invalid credentials.'))
+    const user = userEvent.setup()
+
+    render(<LoginPage onLoggedIn={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Username'), 'alice')
+    await user.type(screen.getByLabelText('Password'), 'wrong')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    await screen.findByRole('alert')
+    expect(screen.getByLabelText('Username')).toHaveValue('alice')
+    expect(screen.getByLabelText('Password')).toHaveValue('')
+    expect(screen.getByLabelText('Password')).toHaveFocus()
+  })
 })
