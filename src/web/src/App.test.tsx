@@ -1,4 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSession } from './api/authApi'
 import App from './App'
@@ -45,5 +46,45 @@ describe('App navigation', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Payments page' })).toBeInTheDocument()
+  })
+})
+
+describe('App sidebar', () => {
+  it('shows the main navigation and signed-in user in the sidebar', async () => {
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Home page' })
+
+    const sidebar = screen.getByRole('complementary')
+    expect(sidebar).toContainElement(screen.getByRole('navigation', { name: 'Main' }))
+    expect(sidebar).toHaveTextContent('Signed in as alice')
+  })
+
+  it('toggles the menu open and closed', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Home page' })
+    const toggle = screen.getByRole('button', { name: 'Menu' })
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveTextContent('Close')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('closes the menu after navigating to another page', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Home page' })
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+
+    act(() => {
+      window.location.hash = '#/clients'
+      window.dispatchEvent(new HashChangeEvent('hashchange'))
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Clients page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false')
   })
 })
