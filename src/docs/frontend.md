@@ -10,6 +10,12 @@
 - Vite + React + TypeScript (`npm create vite@latest -- --template react-ts`), scaffolded at `/src/web`.
 - No routing library, form library, or CSS framework unless a feature actually needs one.
 
+## Navigation
+
+Pages are addressed by URL hash (`#/invoices`, `#/invoices/<id>/edit`, `#/payments/new?invoiceId=<id>`),
+parsed in `src/lib/route.ts`. Links are plain `href="#/..."` anchors and `navigate()` sets the hash, so refresh
+and the back button work without a router dependency. Add a new page by extending `Route` and `parseRoute`.
+
 ## Auth flow (BFF pattern)
 
 The SPA never sees or stores the InvoicingApi JWT. Instead:
