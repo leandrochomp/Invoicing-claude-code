@@ -20,7 +20,8 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     }
 }
 
-public class LoginHandler(InvoicingDbContext dbContext, JwtTokenService tokenService)
+public class LoginHandler(
+    InvoicingDbContext dbContext, JwtTokenService tokenService, ILogger<LoginHandler> logger)
 {
     public async Task<Result<LoginResponse>> HandleAsync(
         LoginRequest request, CancellationToken cancellationToken = default)
@@ -30,10 +31,17 @@ public class LoginHandler(InvoicingDbContext dbContext, JwtTokenService tokenSer
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
+            // The username is deliberately not logged: users sometimes type their password into the
+            // username field, which would then leak into the logs. Brute force is throttled by the
+            // AuthPolicy rate limiter instead.
+            logger.LogWarning("Failed login attempt");
             return Result<LoginResponse>.Unauthorized();
         }
 
         var issued = tokenService.GenerateToken(user);
+
+        logger.LogInformation("User {UserId} logged in", user.Id);
+
         return new LoginResponse(issued.Token, issued.ExpiresAt);
     }
 }

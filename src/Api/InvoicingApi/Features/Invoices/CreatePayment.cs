@@ -17,7 +17,7 @@ public sealed class CreatePaymentValidator : AbstractValidator<CreatePaymentRequ
     }
 }
 
-public class CreatePaymentHandler(InvoicingDbContext dbContext)
+public class CreatePaymentHandler(InvoicingDbContext dbContext, ILogger<CreatePaymentHandler> logger)
 {
     public async Task<Result<PaymentDto>> HandleAsync(Guid invoiceId, CreatePaymentRequest request, CancellationToken cancellationToken = default)
     {
@@ -27,17 +27,23 @@ public class CreatePaymentHandler(InvoicingDbContext dbContext)
 
         if (invoice is null)
         {
+            logger.LogWarning("Invoice {InvoiceId} not found for payment create", invoiceId);
             return Result<PaymentDto>.NotFound();
         }
 
         if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void)
         {
+            logger.LogWarning(
+                "Payment rejected for invoice {InvoiceId} in status {InvoiceStatus}", invoiceId, invoice.Status);
             return Result<PaymentDto>.Conflict(["Cannot record a payment on a draft or voided invoice."]);
         }
 
         var remainingBalance = invoice.GrandTotal - invoice.Payments.Sum(p => p.Amount);
         if (request.Amount > remainingBalance)
         {
+            logger.LogWarning(
+                "Payment of {Amount} exceeds remaining balance {RemainingBalance} for invoice {InvoiceId}",
+                request.Amount, remainingBalance, invoiceId);
             return Result<PaymentDto>.Invalid(new ValidationError
             {
                 Identifier = nameof(request.Amount),
@@ -64,6 +70,10 @@ public class CreatePaymentHandler(InvoicingDbContext dbContext)
         PaymentStatusUpdater.Recalculate(invoice);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Payment {PaymentId} of {Amount} recorded for invoice {InvoiceId}; invoice status {InvoiceStatus}",
+            payment.Id, payment.Amount, invoice.Id, invoice.Status);
 
         return Result<PaymentDto>.Created(PaymentQueries.ToDto(payment), $"/invoices/{invoice.Id}/payments/{payment.Id}");
     }

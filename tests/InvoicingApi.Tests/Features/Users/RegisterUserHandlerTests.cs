@@ -2,6 +2,8 @@ using Ardalis.Result;
 using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Users;
@@ -30,7 +32,8 @@ public class RegisterUserHandlerTests(PostgresFixture postgres)
     public async Task Creates_user_with_default_role_and_hashed_password()
     {
         await using var context = await CreateContextAsync();
-        var handler = new RegisterUserHandler(context);
+        var logger = Substitute.For<ILogger<RegisterUserHandler>>();
+        var handler = new RegisterUserHandler(context, logger);
         var request = ValidRequest();
 
         var result = await handler.HandleAsync(request);
@@ -42,18 +45,21 @@ public class RegisterUserHandlerTests(PostgresFixture postgres)
         var stored = await context.Users.SingleAsync(u => u.Username == request.Username);
         stored.PasswordHash.ShouldNotBe(request.Password);
         BCrypt.Net.BCrypt.Verify(request.Password, stored.PasswordHash).ShouldBeTrue();
+        logger.ReceivedLog(LogLevel.Information, stored.Id.ToString());
     }
 
     [Fact]
     public async Task Returns_conflict_for_duplicate_username()
     {
         await using var context = await CreateContextAsync();
-        var handler = new RegisterUserHandler(context);
+        var logger = Substitute.For<ILogger<RegisterUserHandler>>();
+        var handler = new RegisterUserHandler(context, logger);
         var request = ValidRequest();
 
         (await handler.HandleAsync(request)).Status.ShouldBe(ResultStatus.Created);
         var result = await handler.HandleAsync(request);
 
         result.Status.ShouldBe(ResultStatus.Conflict);
+        logger.ReceivedLog(LogLevel.Warning, request.Username);
     }
 }

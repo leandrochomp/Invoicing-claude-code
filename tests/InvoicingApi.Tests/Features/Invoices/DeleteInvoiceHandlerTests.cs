@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using InvoicingApi.Features.Invoices;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Shared.Data;
 using Shouldly;
@@ -22,11 +23,15 @@ public class DeleteInvoiceHandlerTests
         var repository = Substitute.For<IRepository<Invoice>>();
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Invoice?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new DeleteInvoiceHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<DeleteInvoiceHandler>>();
+        var handler = new DeleteInvoiceHandler(repository, unitOfWork, logger);
 
-        var result = await handler.HandleAsync(Guid.NewGuid());
+        var id = Guid.NewGuid();
+
+        var result = await handler.HandleAsync(id);
 
         result.Status.ShouldBe(ResultStatus.NotFound);
+        logger.ReceivedLog(LogLevel.Warning, id.ToString());
     }
 
     [Fact]
@@ -36,12 +41,14 @@ public class DeleteInvoiceHandlerTests
         var repository = Substitute.For<IRepository<Invoice>>();
         repository.GetByIdAsync(invoice.Id, Arg.Any<CancellationToken>()).Returns(invoice);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new DeleteInvoiceHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<DeleteInvoiceHandler>>();
+        var handler = new DeleteInvoiceHandler(repository, unitOfWork, logger);
 
         var result = await handler.HandleAsync(invoice.Id);
 
         result.IsSuccess.ShouldBeTrue();
         repository.Received(1).Remove(invoice);
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        logger.ReceivedLog(LogLevel.Information, invoice.Id.ToString());
     }
 }
