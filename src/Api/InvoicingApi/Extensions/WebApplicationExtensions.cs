@@ -6,6 +6,10 @@ public static class WebApplicationExtensions
 {
     public static WebApplication ConfigureApi(this WebApplication app)
     {
+        // Must run before anything that reads the client IP (the rate limiter) so a trusted
+        // proxy's X-Forwarded-For is applied to Connection.RemoteIpAddress first.
+        app.UseForwardedHeaders();
+
         app.UseExceptionHandler();
 
         if (!app.Environment.IsDevelopment())

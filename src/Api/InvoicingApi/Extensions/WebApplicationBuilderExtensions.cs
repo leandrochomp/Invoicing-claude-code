@@ -9,6 +9,7 @@ using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -76,6 +77,18 @@ public static class WebApplicationBuilderExtensions
 
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy("AdminOnly", policy => policy.RequireRole(nameof(UserRole.Admin)));
+
+        // The API only receives traffic from the BFF, so Connection.RemoteIpAddress is always the
+        // BFF's address. Honour X-Forwarded-For from the BFF so the AuthPolicy limiter partitions
+        // brute-force attempts by the real client IP instead of bucketing every user behind the BFF
+        // into one shared window. Only forwarded headers from KnownNetworks/KnownProxies are trusted
+        // (loopback by default; add the BFF host in production), so a request reaching the API
+        // directly cannot spoof its source IP.
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+            options.ForwardLimit = 1;
+        });
 
         builder.Services.AddRateLimiter(options =>
         {

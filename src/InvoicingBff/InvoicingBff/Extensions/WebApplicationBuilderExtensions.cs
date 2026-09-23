@@ -6,7 +6,9 @@ using InvoicingBff.Features.Dashboard;
 using InvoicingBff.Features.Invoices;
 using InvoicingBff.Features.Payments;
 using InvoicingBff.Infrastructure.Auth;
+using InvoicingBff.Infrastructure.Http;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace InvoicingBff.Extensions;
@@ -18,19 +20,25 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHttpContextAccessor();
 
+        // Forwards the browser's IP to the API on every outgoing call so the API's rate limiter can
+        // throttle per client instead of per BFF (see ClientIpForwardingHandler).
+        builder.Services.AddTransient<ClientIpForwardingHandler>();
+
         var invoicingApiBaseUrl = builder.Configuration["InvoicingApi:BaseUrl"]
             ?? throw new InvalidOperationException("InvoicingApi:BaseUrl is not configured.");
         builder.Services.AddHttpClient<LoginHandler>(client =>
         {
             client.BaseAddress = new Uri(invoicingApiBaseUrl);
-        });
+        })
+            .AddHttpMessageHandler<ClientIpForwardingHandler>();
 
         // Resource calls carry the caller's JWT (see InvoicingApiAuthHandler), unlike login.
         builder.Services.AddTransient<InvoicingApiAuthHandler>();
         void AddInvoicingApiClient<THandler>()
             where THandler : class =>
             builder.Services.AddHttpClient<THandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-                .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+                .AddHttpMessageHandler<InvoicingApiAuthHandler>()
+                .AddHttpMessageHandler<ClientIpForwardingHandler>();
 
         AddInvoicingApiClient<ListClientsHandler>();
         AddInvoicingApiClient<GetClientByIdHandler>();
@@ -78,6 +86,15 @@ public static class WebApplicationBuilderExtensions
             });
 
         builder.Services.AddAuthorization();
+
+        // If the BFF runs behind a reverse proxy/ingress, honour its X-Forwarded-For so the login
+        // limiter partitions by the real browser IP rather than the proxy. Only trusted proxies
+        // (loopback by default; add the ingress host in production) can set it.
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+            options.ForwardLimit = 1;
+        });
 
         builder.Services.AddRateLimiter(options =>
         {
