@@ -5,6 +5,7 @@ import { formatMoney, roundMoney } from '../lib/format'
 import type { InvoiceFormValues, InvoiceLineValues } from '../lib/invoiceLines'
 import { calculateTotals, newLine, parseNumber } from '../lib/invoiceLines'
 import { BackLink } from './BackLink'
+import { DatePicker } from './DatePicker'
 import { Field } from './Field'
 
 type HeaderField = 'clientId' | 'issueDate' | 'dueDate' | 'currency' | 'notes'
@@ -45,10 +46,10 @@ function validate(values: InvoiceFormValues): FormErrors {
     fields.clientId = 'Choose who this invoice is for.'
   }
   if (!values.issueDate) {
-    fields.issueDate = 'Enter the issue date.'
+    fields.issueDate = 'Enter the issue date as DD/MM/YYYY.'
   }
   if (!values.dueDate) {
-    fields.dueDate = 'Enter the due date.'
+    fields.dueDate = 'Enter the due date as DD/MM/YYYY.'
   } else if (values.issueDate && values.dueDate < values.issueDate) {
     fields.dueDate = 'The due date can’t be before the issue date.'
   }
@@ -214,28 +215,26 @@ export function InvoiceForm({
             </Field>
             <Field id="issueDate" label="Issue date" required error={errors.fields.issueDate}>
               {(describedBy) => (
-                <input
+                <DatePicker
                   id="issueDate"
-                  type="date"
                   value={values.issueDate}
-                  onChange={(event) => update('issueDate', event.target.value)}
+                  onChange={(value) => update('issueDate', value)}
                   required
-                  aria-invalid={errors.fields.issueDate ? true : undefined}
-                  aria-describedby={describedBy}
+                  invalid={Boolean(errors.fields.issueDate)}
+                  describedBy={describedBy}
                 />
               )}
             </Field>
             <Field id="dueDate" label="Due date" required error={errors.fields.dueDate}>
               {(describedBy) => (
-                <input
+                <DatePicker
                   id="dueDate"
-                  type="date"
                   value={values.dueDate}
                   min={values.issueDate || undefined}
-                  onChange={(event) => update('dueDate', event.target.value)}
+                  onChange={(value) => update('dueDate', value)}
                   required
-                  aria-invalid={errors.fields.dueDate ? true : undefined}
-                  aria-describedby={describedBy}
+                  invalid={Boolean(errors.fields.dueDate)}
+                  describedBy={describedBy}
                 />
               )}
             </Field>

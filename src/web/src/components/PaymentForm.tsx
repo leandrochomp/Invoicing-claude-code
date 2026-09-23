@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { PaymentMethod } from '../api/paymentsApi'
 import { paymentMethodLabels } from '../api/paymentsApi'
 import { formatMoney } from '../lib/format'
+import { DatePicker } from './DatePicker'
 import { Field } from './Field'
 
 export interface PaymentFormValues {
@@ -53,7 +54,7 @@ function validate(values: PaymentFormValues, needsInvoice: boolean, maxAmount: n
     errors.amount = `This is more than the ${limit} still owed.`
   }
   if (!values.paymentDate) {
-    errors.paymentDate = 'Enter the date the payment arrived.'
+    errors.paymentDate = 'Enter the date the payment arrived, as DD/MM/YYYY.'
   }
   if (values.notes.length > 500) {
     errors.notes = 'Use 500 characters or fewer.'
@@ -154,14 +155,13 @@ export function PaymentForm({
         </Field>
         <Field id="paymentDate" label="Payment date" required error={errors.paymentDate}>
           {(describedBy) => (
-            <input
+            <DatePicker
               id="paymentDate"
-              type="date"
               value={values.paymentDate}
-              onChange={(event) => update('paymentDate', event.target.value)}
+              onChange={(value) => update('paymentDate', value)}
               required
-              aria-invalid={errors.paymentDate ? true : undefined}
-              aria-describedby={describedBy}
+              invalid={Boolean(errors.paymentDate)}
+              describedBy={describedBy}
             />
           )}
         </Field>
