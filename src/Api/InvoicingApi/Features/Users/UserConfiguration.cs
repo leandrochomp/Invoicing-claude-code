@@ -26,5 +26,24 @@ public class UserConfiguration : SoftDeletableEntityConfiguration<User>
 
         builder.Property(u => u.IsDeleted)
             .HasDefaultValue(false);
+
+        // Learning project only: default admin (Admin / P@ssw0rD!) seeded via migrations.
+        // Id and hash are constants so the seed doesn't churn on every new migration.
+        builder.HasData(new User
+        {
+            Id = SeedAdminUser.Id,
+            Username = SeedAdminUser.Username,
+            PasswordHash = SeedAdminUser.PasswordHash,
+            Role = UserRole.Admin,
+        });
     }
+}
+
+public static class SeedAdminUser
+{
+    public static readonly Guid Id = new("01995c3a-0000-7000-8000-000000000001");
+    public const string Username = "Admin";
+
+    // BCrypt hash of "P@ssw0rD!" (work factor 11).
+    public const string PasswordHash = "$2a$11$ouzQd7TvlOMBYHCZDzZ0oOXVoJhzDzl7NAM91wOFYS/HGgwR3iHEa";
 }
