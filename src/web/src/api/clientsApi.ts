@@ -1,3 +1,5 @@
+import { requestJson, requestNoContent } from './http'
+
 export interface ClientSummary {
   id: string
   companyName: string
@@ -38,34 +40,6 @@ export interface UpdateClientInput extends ClientInput {
   isActive: boolean
 }
 
-export class ClientApiError extends Error {}
-
-async function parseErrorMessage(response: Response): Promise<string> {
-  try {
-    const problem = (await response.json()) as { title?: string; errors?: Record<string, string[]> }
-    if (problem.errors) {
-      return Object.values(problem.errors).flat().join(' ')
-    }
-    return problem.title ?? 'The request failed.'
-  } catch {
-    return 'The request failed.'
-  }
-}
-
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  })
-
-  if (!response.ok) {
-    throw new ClientApiError(await parseErrorMessage(response))
-  }
-
-  return (await response.json()) as T
-}
-
 export function listClients(): Promise<ClientSummary[]> {
   return requestJson<ClientSummary[]>('/bff/clients')
 }
@@ -82,9 +56,6 @@ export function updateClient(id: string, input: UpdateClientInput): Promise<Clie
   return requestJson<ClientSummary>(`/bff/clients/${id}`, { method: 'PUT', body: JSON.stringify(input) })
 }
 
-export async function deleteClient(id: string): Promise<void> {
-  const response = await fetch(`/bff/clients/${id}`, { method: 'DELETE', credentials: 'include' })
-  if (!response.ok) {
-    throw new ClientApiError(await parseErrorMessage(response))
-  }
+export function deleteClient(id: string): Promise<void> {
+  return requestNoContent(`/bff/clients/${id}`, { method: 'DELETE' })
 }

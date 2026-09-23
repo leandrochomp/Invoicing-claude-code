@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { BackLink } from './BackLink'
 import { Field } from './Field'
 
 export interface ClientFormValues {
@@ -194,12 +195,7 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
       <form ref={formRef} className="form-stack" onSubmit={handleSubmit} noValidate aria-labelledby="client-form-title">
         <header className="page-header">
           <div>
-            <button type="button" className="back-link" onClick={handleCancel} disabled={submitting}>
-              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Back to clients
-            </button>
+            <BackLink label="Back to clients" onClick={handleCancel} disabled={submitting} />
             <h1 id="client-form-title">{title}</h1>
           </div>
         </header>

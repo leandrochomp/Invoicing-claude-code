@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createClient, deleteClient, getClient, listClients, updateClient } from '../api/clientsApi'
+import { ApiError } from '../api/http'
 import { ClientsPage } from './ClientsPage'
 
 vi.mock('../api/clientsApi', () => ({
@@ -10,7 +11,6 @@ vi.mock('../api/clientsApi', () => ({
   createClient: vi.fn(),
   updateClient: vi.fn(),
   deleteClient: vi.fn(),
-  ClientApiError: class ClientApiError extends Error {},
 }))
 
 const summary = { id: '1', companyName: 'Acme Corp', email: 'billing@acme.test' }
@@ -116,8 +116,7 @@ describe('ClientsPage', () => {
   })
 
   it('shows an error message when the list fails to load', async () => {
-    const { ClientApiError } = await import('../api/clientsApi')
-    vi.mocked(listClients).mockRejectedValue(new ClientApiError('Unable to reach the Invoicing API.'))
+    vi.mocked(listClients).mockRejectedValue(new ApiError('Unable to reach the Invoicing API.', 503))
 
     render(<ClientsPage />)
 
@@ -151,8 +150,7 @@ describe('ClientsPage states', () => {
   })
 
   it('retries loading the list after an error', async () => {
-    const { ClientApiError } = await import('../api/clientsApi')
-    vi.mocked(listClients).mockRejectedValueOnce(new ClientApiError('Unable to reach the Invoicing API.'))
+    vi.mocked(listClients).mockRejectedValueOnce(new ApiError('Unable to reach the Invoicing API.', 503))
     const user = userEvent.setup()
     render(<ClientsPage />)
 

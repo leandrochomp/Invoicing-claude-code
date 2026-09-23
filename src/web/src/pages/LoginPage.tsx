@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
-import { login, LoginError } from '../api/authApi'
+import { login } from '../api/authApi'
+import { errorMessage } from '../api/http'
 import { Field } from '../components/Field'
 
 interface LoginPageProps {
@@ -47,7 +48,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
       await login({ username, password })
       onLoggedIn()
     } catch (err) {
-      setError(err instanceof LoginError ? err.message : 'Something went wrong. Please try again.')
+      setError(errorMessage(err, 'Something went wrong. Please try again.'))
       // Keep the username so a mistyped password is a quick retry.
       setPassword('')
       passwordRef.current?.focus()
