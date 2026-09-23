@@ -60,6 +60,7 @@ public static class RegisterUserEndpoints
             CancellationToken cancellationToken) =>
                 (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
         .AddEndpointFilter<ValidationFilter<RegisterUserRequest>>()
+        .RequireAuthorization("AdminOnly")
         .RequireRateLimiting("AuthPolicy")
         .WithName("RegisterUser")
         .Produces<UserSummaryDto>(StatusCodes.Status201Created)
