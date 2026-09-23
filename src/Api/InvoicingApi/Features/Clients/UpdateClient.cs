@@ -39,7 +39,8 @@ public class UpdateClientRequestValidator : AbstractValidator<UpdateClientReques
     }
 }
 
-public class UpdateClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class UpdateClientHandler(
+    IRepository<Client> repository, IUnitOfWork unitOfWork, ILogger<UpdateClientHandler> logger)
 {
     public async Task<Result<ClientSummaryDto>> HandleAsync(
         Guid id, UpdateClientRequest request, CancellationToken cancellationToken = default)
@@ -49,6 +50,7 @@ public class UpdateClientHandler(IRepository<Client> repository, IUnitOfWork uni
         var client = await repository.GetByIdAsync(id, cancellationToken);
         if (client is null)
         {
+            logger.LogWarning("Client {ClientId} not found for update", id);
             return Result<ClientSummaryDto>.NotFound();
         }
 
@@ -66,6 +68,8 @@ public class UpdateClientHandler(IRepository<Client> repository, IUnitOfWork uni
         client.IsActive = request.IsActive;
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Client {ClientId} updated", client.Id);
 
         return new ClientSummaryDto(client.Id, client.CompanyName, client.Email);
     }
