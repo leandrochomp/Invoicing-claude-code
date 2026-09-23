@@ -26,17 +26,21 @@ This exists to keep the JWT out of `localStorage`/JS-reachable storage (see `sec
 
 ### Dev server proxy — why there's no CORS config
 
-`vite.config.ts` proxies `/bff/*` to the BFF's dev URL (`http://localhost:5180`). From the browser's
-perspective every request stays on `http://localhost:5173`, so the BFF's cookie is same-origin and no
+`vite.config.ts` proxies `/bff/*` to the BFF's dev URL (`https://localhost:7180`). From the browser's
+perspective every request stays on `https://localhost:5173`, so the BFF's cookie is same-origin and no
 CORS policy is needed, in dev or otherwise. In production the BFF is expected to also serve the built
 SPA (single origin), for the same reason. If a feature ever needs the SPA and BFF on genuinely different
 origins, that's the point to add an explicit CORS allow-list — never a wildcard combined with credentials.
 
 ### Ports
 
-- `InvoicingApi`: `http://localhost:5112` (see `src/Api/InvoicingApi/Properties/launchSettings.json`)
-- `InvoicingBff`: `http://localhost:5180` (see `src/InvoicingBff/InvoicingBff/Properties/launchSettings.json`)
-- Vite dev server: `http://localhost:5173` (Vite's default — this is the one the browser talks to)
+All dev endpoints are HTTPS, using the ASP.NET Core dev certificate exported to `~/.aspnet/https` by
+`make certs`. The docker compose services and the Rider `https` launch profiles share these ports.
+
+- `InvoicingApi`: `https://localhost:7073` (see `src/Api/InvoicingApi/Properties/launchSettings.json`)
+- `InvoicingBff`: `https://localhost:7180` (see `src/InvoicingBff/InvoicingBff/Properties/launchSettings.json`)
+- Vite dev server: `https://localhost:5173` (Vite's default — this is the one the browser talks to).
+  `vite.config.ts` loads the same certificate and fails fast with a hint if it's missing; builds don't need it.
 
 ## Testing
 

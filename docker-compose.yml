@@ -1,11 +1,20 @@
+# HTTPS uses the ASP.NET Core dev certificate exported to ~/.aspnet/https by `make certs`.
+# Its SANs cover localhost and *.dev.internal, so the bff can call the api over TLS as
+# api.dev.internal with full certificate validation.
+x-dev-cert: &dev-cert
+  ASPNETCORE_URLS: "https://+:8443"
+  ASPNETCORE_Kestrel__Certificates__Default__Path: /https/invoicing.pem
+  ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/invoicing.key
+
 services:
   api:
     build:
       context: .
       dockerfile: src/Api/InvoicingApi/Dockerfile
     ports:
-      - "8080:8080"
+      - "7073:8443"
     environment:
+      <<: *dev-cert
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: "Host=db;Port=5432;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres};Database=${POSTGRES_DB:-invoicing}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
@@ -14,9 +23,33 @@ services:
       Jwt__SigningKey: "${JWT_SIGNING_KEY:-docker-compose-dev-only-signing-key-32b-min}"
       Jwt__Issuer: "${JWT_ISSUER:-InvoicingApi.Docker}"
       Jwt__Audience: "${JWT_AUDIENCE:-InvoicingApi.Docker}"
+    volumes:
+      - ${HOME}/.aspnet/https:/https:ro
+    networks:
+      default:
+        aliases:
+          - api.dev.internal
     depends_on:
       db:
         condition: service_healthy
+
+  # Brokers auth between the React dev server (vite proxies /bff to :7180) and the api.
+  bff:
+    build:
+      context: .
+      dockerfile: src/InvoicingBff/InvoicingBff/Dockerfile
+    ports:
+      - "7180:8443"
+    environment:
+      <<: *dev-cert
+      ASPNETCORE_ENVIRONMENT: Development
+      InvoicingApi__BaseUrl: "https://api.dev.internal:8443"
+      # Trust the dev certificate in addition to the system CAs.
+      SSL_CERT_DIR: "/etc/ssl/certs:/https"
+    volumes:
+      - ${HOME}/.aspnet/https:/https:ro
+    depends_on:
+      - api
 
   db:
     image: postgres:17-alpine
