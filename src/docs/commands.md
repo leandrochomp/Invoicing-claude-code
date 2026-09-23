@@ -7,6 +7,7 @@ Prefer `make` targets over raw commands.
 - `make build` — build solution
 - `make test` — run backend tests
 - `make test-web` — run frontend tests (Vitest)
+- `make test-e2e` — run Playwright E2E tests in `tests/e2e` against the running `make dev` stack (set `E2E_USERNAME` / `E2E_PASSWORD`)
 - `make run-api` — run the api, its db and the Aspire dashboard via docker compose
 - `make run-bff` — run the InvoicingBff locally on https://localhost:7180 against `API_URL` (default `https://localhost:7073`, the `up-api` container)
 - `make run-web` — run React dev server (proxies `/bff/*` to InvoicingBff in dev, see frontend.md)

@@ -1,4 +1,4 @@
-.PHONY: build build-api build-web test test-web run-api run-bff run-web migrate migrate-add clean help up up-api dev certs down logs restore clean-containers format format-check
+.PHONY: build build-api build-web test test-web test-e2e run-api run-bff run-web migrate migrate-add clean help up up-api dev certs down logs restore clean-containers format format-check
 
 DOCKER_COMPOSE := docker compose
 SDK_IMAGE := mcr.microsoft.com/dotnet/sdk:10.0
@@ -26,6 +26,12 @@ test: ## Run all tests (in a container, no local SDK needed)
 
 test-web: ## Run frontend tests (Vitest)
 	cd src/web && npm test
+
+test-e2e: tests/e2e/node_modules ## Run Playwright E2E tests against `make dev` (needs E2E_USERNAME, E2E_PASSWORD)
+	cd tests/e2e && PLAYWRIGHT_HTML_OPEN=never npx playwright test
+
+tests/e2e/node_modules: tests/e2e/package-lock.json
+	cd tests/e2e && npm ci && npx playwright install chromium
 
 run-api: ## Run the api, its db and the Aspire dashboard via docker compose
 	$(DOCKER_COMPOSE) up --build api

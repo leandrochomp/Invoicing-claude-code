@@ -17,6 +17,7 @@ Add packages via `dotnet add package` or `npm install`. Ask first.
 - `/tests/Shared.Tests` contains xUnit library.
 - `/tests/InvoicingApi.Tests` contains xUnit library.
 - `/tests/InvoicingBff.Tests` contains xUnit library.
+- `/tests/e2e` contains Playwright E2E tests (standalone npm project).
 - `/src/web` contains the React client.
 
 ## Commands
