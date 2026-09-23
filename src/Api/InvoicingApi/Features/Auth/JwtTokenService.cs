@@ -8,7 +8,7 @@ namespace InvoicingApi.Features.Auth;
 
 public sealed record IssuedToken(string Token, DateTimeOffset ExpiresAt);
 
-public class JwtTokenService(IConfiguration configuration)
+public class JwtTokenService(IConfiguration configuration, TimeProvider timeProvider)
 {
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(60);
 
@@ -25,7 +25,7 @@ public class JwtTokenService(IConfiguration configuration)
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
             SecurityAlgorithms.HmacSha256);
 
-        var expiresAt = DateTimeOffset.UtcNow.Add(TokenLifetime);
+        var expiresAt = timeProvider.GetUtcNow().Add(TokenLifetime);
 
         var claims = new[]
         {

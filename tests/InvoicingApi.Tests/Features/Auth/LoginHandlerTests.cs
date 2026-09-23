@@ -37,7 +37,7 @@ public class LoginHandlerTests(PostgresFixture postgres)
             })
             .Build();
 
-        return new JwtTokenService(configuration);
+        return new JwtTokenService(configuration, TimeProvider.System);
     }
 
     [Fact]

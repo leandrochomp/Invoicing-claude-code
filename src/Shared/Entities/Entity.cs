@@ -13,10 +13,10 @@ public abstract class SoftDeletableEntity : Entity
     public DateTimeOffset? DeletedAt { get; protected set; }
     public Guid? DeletedBy { get; protected set; }
 
-    public void SoftDelete(Guid deletedBy)
+    public void SoftDelete(Guid deletedBy, DateTimeOffset deletedAt)
     {
         IsDeleted = true;
-        DeletedAt = DateTimeOffset.UtcNow;
+        DeletedAt = deletedAt;
         DeletedBy = deletedBy;
     }
 

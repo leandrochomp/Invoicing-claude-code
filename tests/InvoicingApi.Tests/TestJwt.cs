@@ -53,6 +53,6 @@ public static class TestJwt
             Role = role,
         };
 
-        return new JwtTokenService(configuration).GenerateToken(user).Token;
+        return new JwtTokenService(configuration, TimeProvider.System).GenerateToken(user).Token;
     }
 }
