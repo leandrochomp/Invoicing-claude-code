@@ -1,5 +1,6 @@
 using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Validation;
+using Shared.Data;
 
 namespace InvoicingApi.Features.Invoices;
 
@@ -30,12 +31,12 @@ public static class InvoiceEndpoints
                 Guid? clientId = null,
                 InvoiceStatus? status = null,
                 int page = 1,
-                int pageSize = 50) =>
+                int pageSize = PagingExtensions.DefaultPageSize) =>
                 (await queries.ListAsync(clientId, status, page, pageSize, cancellationToken)).ToApiResult())
             .RequireAuthorization()
             .WithName("ListInvoices")
             .WithSummary("List invoices, optionally filtered by client or status")
-            .Produces<InvoiceListResponse>();
+            .Produces<PagedResponse<InvoiceSummaryDto>>();
 
         app.MapPut("/invoices/{id:guid}", async (Guid id, UpdateInvoiceRequest request, UpdateInvoiceHandler handler, CancellationToken cancellationToken) =>
                 (await handler.HandleAsync(id, request, cancellationToken)).ToApiResult())

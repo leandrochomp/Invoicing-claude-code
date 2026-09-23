@@ -31,24 +31,20 @@ public class CreatePaymentHandler(InvoicingDbContext dbContext, ILogger<CreatePa
             return Result<PaymentDto>.NotFound();
         }
 
-        if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void)
+        if (!InvoicePayments.AcceptsPayments(invoice))
         {
             logger.LogWarning(
                 "Payment rejected for invoice {InvoiceId} in status {InvoiceStatus}", invoiceId, invoice.Status);
             return Result<PaymentDto>.Conflict(["Cannot record a payment on a draft or voided invoice."]);
         }
 
-        var remainingBalance = invoice.GrandTotal - invoice.Payments.Sum(p => p.Amount);
+        var remainingBalance = InvoicePayments.RemainingBalance(invoice);
         if (request.Amount > remainingBalance)
         {
             logger.LogWarning(
                 "Payment of {Amount} exceeds remaining balance {RemainingBalance} for invoice {InvoiceId}",
                 request.Amount, remainingBalance, invoiceId);
-            return Result<PaymentDto>.Invalid(new ValidationError
-            {
-                Identifier = nameof(request.Amount),
-                ErrorMessage = $"Amount exceeds the remaining balance of {remainingBalance:0.00}.",
-            });
+            return Result<PaymentDto>.Invalid(InvoicePayments.ExceedsBalance(remainingBalance));
         }
 
         var payment = new Payment

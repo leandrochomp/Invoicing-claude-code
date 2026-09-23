@@ -1,5 +1,6 @@
 using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Validation;
+using Shared.Data;
 
 namespace InvoicingApi.Features.Invoices;
 
@@ -23,12 +24,12 @@ public static class PaymentEndpoints
                 CancellationToken cancellationToken,
                 Guid? clientId = null,
                 int page = 1,
-                int pageSize = 50) =>
+                int pageSize = PagingExtensions.DefaultPageSize) =>
                 (await queries.ListAsync(clientId, page, pageSize, cancellationToken)).ToApiResult())
             .RequireAuthorization()
             .WithName("ListPayments")
             .WithSummary("List payments across all invoices, newest first, optionally filtered by client")
-            .Produces<PaymentListResponse>();
+            .Produces<PagedResponse<PaymentLedgerItemDto>>();
 
         app.MapGet("/invoices/{invoiceId:guid}/payments/{id:guid}", async (Guid invoiceId, Guid id, PaymentQueries queries, CancellationToken cancellationToken) =>
                 (await queries.GetByIdAsync(invoiceId, id, cancellationToken)).ToApiResult())

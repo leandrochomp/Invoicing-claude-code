@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Shared.Data;
 using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
@@ -106,7 +107,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         await SeedPaymentAsync(factory, invoice.Id, 250.50m, DateTimeOffset.UtcNow.AddDays(-1));
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<PaymentListResponse>("/payments");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<PaymentLedgerItemDto>>("/payments");
 
         response.ShouldNotBeNull();
         response.TotalRecords.ShouldBe(2);
@@ -130,7 +131,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         await SeedPaymentAsync(factory, globexInvoice.Id, 200m, DateTimeOffset.UtcNow);
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<PaymentListResponse>($"/payments?clientId={acme.Id}");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<PaymentLedgerItemDto>>($"/payments?clientId={acme.Id}");
 
         response.ShouldNotBeNull();
         response.Items.Count.ShouldBe(1);
@@ -148,7 +149,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         }
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<PaymentListResponse>("/payments?page=2&pageSize=2");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<PaymentLedgerItemDto>>("/payments?page=2&pageSize=2");
 
         response.ShouldNotBeNull();
         response.Items.Count.ShouldBe(1);
@@ -171,7 +172,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         }
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<PaymentListResponse>("/payments");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<PaymentLedgerItemDto>>("/payments");
 
         response.ShouldNotBeNull();
         response.Items.ShouldHaveSingleItem().ClientName.ShouldBe("Gone Ltd");
