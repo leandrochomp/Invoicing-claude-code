@@ -40,24 +40,10 @@ public static class WebApplicationExtensions
         app.MapLogoutEndpoint();
         app.MapSessionEndpoint();
 
-        app.MapListClientsEndpoint();
-        app.MapGetClientByIdEndpoint();
-        app.MapCreateClientEndpoint();
-        app.MapUpdateClientEndpoint();
-        app.MapDeleteClientEndpoint();
-
-        app.MapListInvoicesEndpoint();
-        app.MapGetInvoiceByIdEndpoint();
-        app.MapCreateInvoiceEndpoint();
-        app.MapUpdateInvoiceEndpoint();
-        app.MapDeleteInvoiceEndpoint();
-
-        app.MapListPaymentsEndpoint();
-        app.MapCreatePaymentEndpoint();
-        app.MapUpdatePaymentEndpoint();
-        app.MapDeletePaymentEndpoint();
-
-        app.MapGetDashboardSummaryEndpoint();
+        app.MapClientEndpoints();
+        app.MapInvoiceEndpoints();
+        app.MapPaymentEndpoints();
+        app.MapDashboardEndpoints();
 
         return app;
     }
