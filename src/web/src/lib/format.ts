@@ -21,7 +21,31 @@ export function addDays(date: string, days: number): string {
   return value.toISOString().slice(0, 10)
 }
 
-const dateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+// Date fields show and accept Australian day-first dates (DD/MM/YYYY) whatever the browser's locale.
+export function formatDateField(date: string): string {
+  const [year, month, day] = date.split('-')
+  return date ? `${day}/${month}/${year}` : ''
+}
+
+// Accepts D/M/YY or DD/MM/YYYY with `/`, `-` or `.` separators. Returns '' for anything that isn't a
+// real calendar day, so form validation treats it like an empty field.
+export function parseDateField(text: string): string {
+  const match = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})$/.exec(text.trim())
+  if (!match) {
+    return ''
+  }
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+  // Date.UTC rolls impossible days like 31/02 into the next month, so round-trip to reject them.
+  const value = new Date(Date.UTC(year, month - 1, day))
+  if (value.getUTCFullYear() !== year || value.getUTCMonth() !== month - 1 || value.getUTCDate() !== day) {
+    return ''
+  }
+  return value.toISOString().slice(0, 10)
+}
+
+const dateFormat = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 export function formatDate(iso: string): string {
   return dateFormat.format(new Date(fromDateInput(toDateInput(iso))))
