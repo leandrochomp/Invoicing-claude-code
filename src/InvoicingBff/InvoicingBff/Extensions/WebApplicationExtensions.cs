@@ -10,6 +10,10 @@ public static class WebApplicationExtensions
 {
     public static WebApplication ConfigureBff(this WebApplication app)
     {
+        // Must run before the rate limiter so a trusted proxy's X-Forwarded-For is applied to
+        // Connection.RemoteIpAddress first.
+        app.UseForwardedHeaders();
+
         app.UseExceptionHandler();
 
         if (!app.Environment.IsDevelopment())

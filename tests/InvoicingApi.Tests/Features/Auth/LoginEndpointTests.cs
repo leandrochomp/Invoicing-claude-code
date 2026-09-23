@@ -31,6 +31,21 @@ public class LoginEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
+    // Registration is now Admin-gated, so login tests seed their user directly rather than
+    // depending on the /auth/register endpoint's authorization.
+    private static async Task SeedUserAsync(WebApplicationFactory<Program> factory, string username, string password)
+    {
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        context.Users.Add(new User
+        {
+            Username = username,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = UserRole.User,
+        });
+        await context.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task Returns_token_for_registered_user()
     {
@@ -38,7 +53,7 @@ public class LoginEndpointTests(PostgresFixture postgres)
         using var client = factory.CreateClient();
         var username = $"user-{Guid.NewGuid()}";
         const string password = "correct-horse-battery-staple";
-        await client.PostAsJsonAsync("/auth/register", new RegisterUserRequest(username, password));
+        await SeedUserAsync(factory, username, password);
 
         var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest(username, password));
         var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
@@ -69,7 +84,7 @@ public class LoginEndpointTests(PostgresFixture postgres)
         await using var factory = await CreateFactoryAsync();
         using var client = factory.CreateClient();
         var username = $"user-{Guid.NewGuid()}";
-        await client.PostAsJsonAsync("/auth/register", new RegisterUserRequest(username, "correct-horse-battery-staple"));
+        await SeedUserAsync(factory, username, "correct-horse-battery-staple");
 
         var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest(username, "wrong-password"));
 

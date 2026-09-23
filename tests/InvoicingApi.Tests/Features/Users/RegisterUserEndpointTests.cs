@@ -33,10 +33,10 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
         Password: "correct-horse-battery-staple");
 
     [Fact]
-    public async Task Returns_created_for_valid_request()
+    public async Task Returns_created_for_admin_with_valid_request()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
 
         var response = await client.PostAsJsonAsync("/auth/register", ValidRequest());
         var body = await response.Content.ReadFromJsonAsync<UserSummaryDto>();
@@ -47,10 +47,32 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Returns_validation_problem_for_short_password()
+    public async Task Returns_unauthorized_when_no_token_is_provided()
     {
         await using var factory = await CreateFactoryAsync();
         using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/register", ValidRequest());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Returns_forbidden_for_non_admin_user()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
+
+        var response = await client.PostAsJsonAsync("/auth/register", ValidRequest());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Returns_validation_problem_for_short_password()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
         var invalidRequest = ValidRequest() with { Password = "short" };
 
         var response = await client.PostAsJsonAsync("/auth/register", invalidRequest);
@@ -62,7 +84,7 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
     public async Task Returns_conflict_for_duplicate_username()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = factory.CreateClient();
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
         var request = ValidRequest();
 
         await client.PostAsJsonAsync("/auth/register", request);
