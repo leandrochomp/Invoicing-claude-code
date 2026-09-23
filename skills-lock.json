@@ -37,6 +37,12 @@
       "skillPath": "skills/csharp-coding-standards/SKILL.md",
       "computedHash": "6cf16abbaf9440a0c22ba94feaebf2cbf00d6a18cfb25ae03f96e59521b0f4cd"
     },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "computedHash": "1e6cef0264b72fbf47618ccb82644b9a72934b2eeb35186842332928492a3cd2"
+    },
     "ponytail": {
       "source": "dietrichgebert/ponytail",
       "sourceType": "github",
