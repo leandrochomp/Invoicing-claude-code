@@ -7,6 +7,7 @@ using InvoicingApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Data;
 using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Invoices;
@@ -80,7 +81,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         await SeedInvoiceAsync(factory, otherClientId, InvoiceStatus.Draft);
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<InvoiceSummaryDto>>($"/invoices?clientId={clientId}");
 
         response.ShouldNotBeNull();
         response.Items.ShouldAllBe(i => i.ClientId == clientId);
@@ -97,7 +98,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         await SeedInvoiceAsync(factory, clientId, InvoiceStatus.Paid);
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}&status={InvoiceStatus.Paid}");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<InvoiceSummaryDto>>($"/invoices?clientId={clientId}&status={InvoiceStatus.Paid}");
 
         response.ShouldNotBeNull();
         response.Items.ShouldAllBe(i => i.Status == InvoiceStatus.Paid);
@@ -115,7 +116,7 @@ public class ListInvoicesEndpointTests(PostgresFixture postgres)
         }
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
-        var response = await httpClient.GetFromJsonAsync<InvoiceListResponse>($"/invoices?clientId={clientId}&page=1&pageSize=2");
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<InvoiceSummaryDto>>($"/invoices?clientId={clientId}&page=1&pageSize=2");
 
         response.ShouldNotBeNull();
         response.Items.Count.ShouldBe(2);

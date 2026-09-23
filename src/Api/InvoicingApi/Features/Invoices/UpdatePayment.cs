@@ -39,17 +39,13 @@ public class UpdatePaymentHandler(InvoicingDbContext dbContext, ILogger<UpdatePa
             return Result<PaymentDto>.NotFound();
         }
 
-        var remainingBalance = invoice.GrandTotal - invoice.Payments.Where(p => p.Id != id).Sum(p => p.Amount);
+        var remainingBalance = InvoicePayments.RemainingBalance(invoice, excludingPaymentId: id);
         if (request.Amount > remainingBalance)
         {
             logger.LogWarning(
                 "Payment {PaymentId} update to {Amount} exceeds remaining balance {RemainingBalance} for invoice {InvoiceId}",
                 id, request.Amount, remainingBalance, invoiceId);
-            return Result<PaymentDto>.Invalid(new ValidationError
-            {
-                Identifier = nameof(request.Amount),
-                ErrorMessage = $"Amount exceeds the remaining balance of {remainingBalance:0.00}.",
-            });
+            return Result<PaymentDto>.Invalid(InvoicePayments.ExceedsBalance(remainingBalance));
         }
 
         // Compare against the version the caller last read, not the value we just loaded,
