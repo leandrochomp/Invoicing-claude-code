@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Clients;
@@ -9,14 +8,13 @@ using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Shared.Hosting;
 
 namespace InvoicingApi.Extensions;
 
@@ -80,24 +78,9 @@ public static class WebApplicationBuilderExtensions
         // into one shared window. Only forwarded headers from KnownNetworks/KnownProxies are trusted
         // (loopback by default; add the BFF host in production), so a request reaching the API
         // directly cannot spoof its source IP.
-        builder.Services.Configure<ForwardedHeadersOptions>(options =>
-        {
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
-            options.ForwardLimit = 1;
-        });
+        builder.Services.AddTrustedForwardedHeaders();
 
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy("AuthPolicy", httpContext => RateLimitPartition.GetFixedWindowLimiter(
-                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 5,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                }));
-        });
+        builder.Services.AddAuthRateLimiter();
 
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddScoped<RegisterUserHandler>();

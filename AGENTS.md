@@ -13,6 +13,7 @@ Add packages via `dotnet add package` or `npm install`. Ask first.
 - `/src/Api` contains dotnet 10 backend webapi.
 - `/src/InvoicingBff` contains the dotnet 10 BFF (Backend-For-Frontend) that brokers auth between the React client and the API.
 - `/src/Shared` contains dotnet 10 class library general-purpose helpers that have no application-specific behavior.
+- `/src/Shared.Hosting` contains ASP.NET Core host setup shared by the API and the BFF (security headers, forwarded headers, auth rate limiter). No EF Core.
 - `/tests/Shared.Tests` contains xUnit library.
 - `/tests/InvoicingApi.Tests` contains xUnit library.
 - `/tests/InvoicingBff.Tests` contains xUnit library.

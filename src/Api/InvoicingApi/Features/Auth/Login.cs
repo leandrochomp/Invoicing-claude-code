@@ -4,6 +4,7 @@ using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.Validation;
 using Microsoft.EntityFrameworkCore;
+using Shared.Hosting;
 
 namespace InvoicingApi.Features.Auth;
 
@@ -56,7 +57,7 @@ public static class LoginEndpoints
             CancellationToken cancellationToken) =>
                 (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
         .AddEndpointFilter<ValidationFilter<LoginRequest>>()
-        .RequireRateLimiting("AuthPolicy")
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .WithName("Login")
         .ProducesValidationProblem();
 
