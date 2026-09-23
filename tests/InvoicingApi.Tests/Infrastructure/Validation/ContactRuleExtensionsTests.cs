@@ -1,8 +1,8 @@
 using FluentValidation;
-using InvoicingBff.Infrastructure.Validation;
+using InvoicingApi.Infrastructure.Validation;
 using Shouldly;
 
-namespace InvoicingBff.Tests.Infrastructure.Validation;
+namespace InvoicingApi.Tests.Infrastructure.Validation;
 
 public class ContactRuleExtensionsTests
 {

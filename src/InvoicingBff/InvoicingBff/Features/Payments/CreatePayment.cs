@@ -1,22 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using FluentValidation;
 using InvoicingBff.Infrastructure.Http;
-using InvoicingBff.Infrastructure.Validation;
 
 namespace InvoicingBff.Features.Payments;
 
 public sealed record CreatePaymentRequest(decimal Amount, DateTimeOffset PaymentDate, PaymentMethod Method, string? Notes);
-
-public class CreatePaymentRequestValidator : AbstractValidator<CreatePaymentRequest>
-{
-    public CreatePaymentRequestValidator()
-    {
-        RuleFor(r => r.Amount).GreaterThan(0);
-        RuleFor(r => r.Method).IsInEnum();
-        RuleFor(r => r.Notes).MaximumLength(500);
-    }
-}
 
 public class CreatePaymentHandler(HttpClient invoicingApiClient, ILogger<CreatePaymentHandler> logger)
 {
@@ -37,7 +25,6 @@ public static class CreatePaymentEndpoints
             CreatePaymentHandler handler,
             CancellationToken cancellationToken) =>
                 await handler.HandleAsync(invoiceId, request, cancellationToken))
-        .AddEndpointFilter<ValidationFilter<CreatePaymentRequest>>()
         .RequireAuthorization()
         .WithName("BffCreatePayment")
         .ProducesValidationProblem();

@@ -80,9 +80,12 @@ public class ClientsEndpointTests
     }
 
     [Fact]
-    public async Task CreateClient_WithInvalidBody_ReturnsValidationProblem()
+    public async Task CreateClient_WhenApiRejectsBody_PassesValidationProblemThrough()
     {
-        using var factory = new BffTestFactory(_ => BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
+        const string validationProblem = """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Email":["'Email' is not a valid email address."]}}""";
+        using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == "/clients"
+            ? BffTestClient.ProblemResponse(HttpStatusCode.BadRequest, validationProblem)
+            : BffTestClient.JsonResponse(HttpStatusCode.OK, BffTestClient.ValidLoginJson));
         using var client = await BffTestClient.AuthenticatedAsync(factory);
 
         var response = await client.PostAsJsonAsync("/bff/clients", new CreateClientRequest(
@@ -99,6 +102,7 @@ public class ClientsEndpointTests
             PreferredCurrency: "USD"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldBe(validationProblem);
     }
 
     [Fact]

@@ -1,8 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using FluentValidation;
 using InvoicingBff.Infrastructure.Http;
-using InvoicingBff.Infrastructure.Validation;
 
 namespace InvoicingBff.Features.Invoices;
 
@@ -17,33 +15,6 @@ public sealed record UpdateInvoiceRequest(
     string? Notes,
     int Version,
     IReadOnlyList<UpdateInvoiceItemRequest> Items);
-
-public class UpdateInvoiceItemRequestValidator : AbstractValidator<UpdateInvoiceItemRequest>
-{
-    public UpdateInvoiceItemRequestValidator()
-    {
-        RuleFor(i => i.Description).NotEmpty().MaximumLength(1000);
-        RuleFor(i => i.Quantity).GreaterThan(0);
-        RuleFor(i => i.UnitPrice).GreaterThanOrEqualTo(0);
-        RuleFor(i => i.TaxRate).GreaterThanOrEqualTo(0);
-        RuleFor(i => i.SortOrder).GreaterThanOrEqualTo(0);
-    }
-}
-
-public class UpdateInvoiceRequestValidator : AbstractValidator<UpdateInvoiceRequest>
-{
-    public UpdateInvoiceRequestValidator()
-    {
-        RuleFor(r => r.ClientId).NotEmpty();
-        RuleFor(r => r.Status).IsInEnum();
-        RuleFor(r => r.Currency).NotEmpty().Length(3);
-        RuleFor(r => r.Notes).MaximumLength(4000);
-        RuleFor(r => r.DueDate).GreaterThanOrEqualTo(r => r.IssueDate);
-        RuleFor(r => r.Version).GreaterThanOrEqualTo(0);
-        RuleFor(r => r.Items).NotEmpty().WithMessage("An invoice must have at least one line item.");
-        RuleForEach(r => r.Items).SetValidator(new UpdateInvoiceItemRequestValidator());
-    }
-}
 
 public class UpdateInvoiceHandler(HttpClient invoicingApiClient, ILogger<UpdateInvoiceHandler> logger)
 {
@@ -64,7 +35,6 @@ public static class UpdateInvoiceEndpoints
             UpdateInvoiceHandler handler,
             CancellationToken cancellationToken) =>
                 await handler.HandleAsync(id, request, cancellationToken))
-        .AddEndpointFilter<ValidationFilter<UpdateInvoiceRequest>>()
         .RequireAuthorization()
         .WithName("BffUpdateInvoice")
         .ProducesValidationProblem();

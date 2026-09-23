@@ -92,35 +92,19 @@ public class InvoicesEndpointTests
     }
 
     [Fact]
-    public async Task CreateInvoice_WithoutLineItems_ReturnsValidationProblemWithoutCallingTheApi()
+    public async Task CreateInvoice_WhenApiRejectsBody_PassesValidationProblemThrough()
     {
-        var apiCalls = 0;
-        using var factory = new BffTestFactory(request =>
-        {
-            if (request.RequestUri!.AbsolutePath == "/invoices")
-            {
-                apiCalls++;
-            }
-
-            return JsonResponse(HttpStatusCode.OK, ValidLoginJson);
-        });
+        const string validationProblem = """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Items":["An invoice must have at least one line item."]}}""";
+        using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == "/invoices"
+            ? ProblemResponse(HttpStatusCode.BadRequest, validationProblem)
+            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
         using var client = await AuthenticatedAsync(factory);
 
         var response = await client.PostAsJsonAsync("/bff/invoices", ValidCreateRequest() with { Items = [] });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        apiCalls.ShouldBe(0);
-    }
-
-    [Fact]
-    public async Task CreateInvoice_WithDueDateBeforeIssueDate_ReturnsValidationProblem()
-    {
-        using var factory = new BffTestFactory(_ => JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedAsync(factory);
-
-        var response = await client.PostAsJsonAsync("/bff/invoices", ValidCreateRequest() with { DueDate = IssueDate.AddDays(-1) });
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        (await response.Content.ReadAsStringAsync()).ShouldBe(validationProblem);
     }
 
     [Fact]
@@ -145,25 +129,6 @@ public class InvoicesEndpointTests
         forwardedBody.ShouldNotBeNull();
         forwardedBody.ShouldContain("\"currency\":\"USD\"");
         forwardedBody.ShouldContain("\"taxRate\":0.1");
-    }
-
-    [Fact]
-    public async Task UpdateInvoice_WithUnknownStatus_ReturnsValidationProblem()
-    {
-        using var factory = new BffTestFactory(_ => JsonResponse(HttpStatusCode.OK, ValidLoginJson));
-        using var client = await AuthenticatedAsync(factory);
-
-        var response = await client.PutAsJsonAsync($"/bff/invoices/{InvoiceId}", new UpdateInvoiceRequest(
-            ClientId,
-            (InvoiceStatus)42,
-            IssueDate,
-            IssueDate.AddDays(30),
-            "USD",
-            Notes: null,
-            Version: 0,
-            [new UpdateInvoiceItemRequest(null, "Consulting", 1m, 100m, 0m, 0)]));
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
