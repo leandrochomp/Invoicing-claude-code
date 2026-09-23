@@ -1,49 +1,24 @@
 using InvoicingApi.Features.Clients;
-using NSubstitute;
-using Shared.Data;
+using InvoicingApi.Tests.Features.Invoices;
 using Shouldly;
 
 namespace InvoicingApi.Tests.Features.Clients;
 
-public class ListClientsQueryTests
+[Collection(PostgresCollection.Name)]
+public class ListClientsQueryTests(PostgresFixture postgres)
 {
     [Fact]
     public async Task Returns_summaries_for_all_clients()
     {
-        var clients = new List<Client>
-        {
-            new()
-            {
-                CompanyName = "Acme Corp",
-                Email = "billing@acme.test",
-                AddressLine1 = "1 Main St",
-                City = "Springfield",
-                StateOrRegion = "IL",
-                PostalCode = "62701",
-                Country = "US",
-                PreferredCurrency = "USD",
-            },
-            new()
-            {
-                CompanyName = "Globex Inc",
-                Email = "ap@globex.test",
-                AddressLine1 = "2 Main St",
-                City = "Springfield",
-                StateOrRegion = "IL",
-                PostalCode = "62701",
-                Country = "US",
-                PreferredCurrency = "USD",
-            },
-        };
-        var repository = Substitute.For<IRepository<Client>>();
-        repository.ListAsync(Arg.Any<CancellationToken>()).Returns(clients);
-        var query = new ListClientsQuery(repository);
+        await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
+        var first = await InvoiceHandlerTestData.SeedClientAsync(context);
+        var second = await InvoiceHandlerTestData.SeedClientAsync(context);
+        var query = new ListClientsQuery(context);
 
         var result = await query.ListAsync();
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.Count.ShouldBe(2);
-        result.Value.ShouldContain(c => c.CompanyName == "Acme Corp");
-        result.Value.ShouldContain(c => c.CompanyName == "Globex Inc");
+        result.Value.ShouldContain(c => c.Id == first.Id && c.Email == first.Email);
+        result.Value.ShouldContain(c => c.Id == second.Id && c.CompanyName == second.CompanyName);
     }
 }

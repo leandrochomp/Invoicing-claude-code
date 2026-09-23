@@ -2,6 +2,7 @@
 
 - Vertical Slice Architecture. Features live under `Features/<Name>/`, one file per slice.
 - Minimal API endpoints, no controllers.
+- Handlers and queries inject `InvoicingDbContext` directly. No generic repository or unit-of-work wrapper: `DbSet<T>` is the repository and `SaveChangesAsync` is the unit of work.
 - Entities inherit `Entity` (Id: Guid, Version: int for optimistic concurrency).
 - DTOs are separate from entities. Never return entities directly.
 - EF Core configurations in `IEntityTypeConfiguration<T>`, not attributes.
@@ -66,14 +67,14 @@ Signals expected, nameable business-rule outcomes from service/application-layer
 ```csharp
 public async Task<Result<ClientSummaryDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
 {
-    var client = await repository.GetByIdAsync(id, cancellationToken);
+    var client = await dbContext.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     return client is null ? Result<ClientSummaryDto>.NotFound() : new ClientSummaryDto(...);
 }
 ```
 
 ## Minimal API Endpoints
 
-- Endpoints are thin HTTP adapters: bind request, delegate to a handler, map result to `IResult`. No business logic, no repository calls, no `DbContext` in the lambda.
+- Endpoints are thin HTTP adapters: bind request, delegate to a handler, map result to `IResult`. No business logic, no `DbContext` in the lambda.
 - The handler class is named `XxxHandler`, never `XxxCommand`. A *command* is the message (record); the class that processes it is a **handler**. Even when injected directly (no MediatR), name it `CreateClientHandler` and expose `HandleAsync`.
 - Validation runs in a `ValidationFilter<T>` endpoint filter, attached with `.AddEndpointFilter<ValidationFilter<T>>()`. Do not call `IValidator<T>.ValidateAsync` inside the endpoint body — it must be declarative so it cannot be forgotten.
 - Write endpoints declare their success status: `Results.Created(...)` (201 + `Location`) for POST-create, with `.Produces<T>(StatusCodes.Status201Created)` and `.ProducesValidationProblem()` for OpenAPI.

@@ -1,8 +1,8 @@
 using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
+using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.Validation;
-using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
 
@@ -38,7 +38,7 @@ public class CreateClientRequestValidator : AbstractValidator<CreateClientReques
 }
 
 public class CreateClientHandler(
-    IRepository<Client> repository, IUnitOfWork unitOfWork, ILogger<CreateClientHandler> logger)
+    InvoicingDbContext dbContext, ILogger<CreateClientHandler> logger)
 {
     public async Task<Result<ClientSummaryDto>> HandleAsync(
         CreateClientRequest request, CancellationToken cancellationToken = default)
@@ -58,13 +58,12 @@ public class CreateClientHandler(
             PreferredCurrency = request.PreferredCurrency,
         };
 
-        await repository.AddAsync(client, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        dbContext.Clients.Add(client);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Client {ClientId} created", client.Id);
 
-        var dto = new ClientSummaryDto(client.Id, client.CompanyName, client.Email);
-        return Result<ClientSummaryDto>.Created(dto, $"/clients/{client.Id}");
+        return Result<ClientSummaryDto>.Created(ClientSummaryDto.From(client), $"/clients/{client.Id}");
     }
 }
 

@@ -2,8 +2,9 @@ using Ardalis.GuardClauses;
 using Ardalis.Result;
 using FluentValidation;
 using InvoicingApi.Extensions;
+using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.Validation;
-using Shared.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Clients;
 
@@ -40,14 +41,14 @@ public class UpdateClientRequestValidator : AbstractValidator<UpdateClientReques
 }
 
 public class UpdateClientHandler(
-    IRepository<Client> repository, IUnitOfWork unitOfWork, ILogger<UpdateClientHandler> logger)
+    InvoicingDbContext dbContext, ILogger<UpdateClientHandler> logger)
 {
     public async Task<Result<ClientSummaryDto>> HandleAsync(
         Guid id, UpdateClientRequest request, CancellationToken cancellationToken = default)
     {
         Guard.Against.Default(id, nameof(id));
 
-        var client = await repository.GetByIdAsync(id, cancellationToken);
+        var client = await dbContext.Clients.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (client is null)
         {
             logger.LogWarning("Client {ClientId} not found for update", id);
@@ -67,11 +68,11 @@ public class UpdateClientHandler(
         client.PreferredCurrency = request.PreferredCurrency;
         client.IsActive = request.IsActive;
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Client {ClientId} updated", client.Id);
 
-        return new ClientSummaryDto(client.Id, client.CompanyName, client.Email);
+        return ClientSummaryDto.From(client);
     }
 }
 

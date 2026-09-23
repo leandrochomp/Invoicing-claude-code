@@ -1,21 +1,20 @@
 using Ardalis.Result;
 using InvoicingApi.Extensions;
-using Shared.Data;
+using InvoicingApi.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Clients;
 
-public class ListClientsQuery(IRepository<Client> repository)
+public class ListClientsQuery(InvoicingDbContext dbContext)
 {
     public async Task<Result<IReadOnlyList<ClientSummaryDto>>> ListAsync(
         CancellationToken cancellationToken = default)
     {
-        var clients = await repository.ListAsync(cancellationToken);
-
-        var dtos = clients
+        // Projected in SQL so only the three summary columns are read.
+        return await dbContext.Clients
+            .AsNoTracking()
             .Select(c => new ClientSummaryDto(c.Id, c.CompanyName, c.Email))
-            .ToList();
-
-        return dtos;
+            .ToListAsync(cancellationToken);
     }
 }
 

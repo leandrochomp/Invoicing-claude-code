@@ -1,10 +1,14 @@
 using Ardalis.Result;
 using InvoicingApi.Extensions;
-using Shared.Data;
+using InvoicingApi.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoicingApi.Features.Clients;
 
-public sealed record ClientSummaryDto(Guid Id, string CompanyName, string Email);
+public sealed record ClientSummaryDto(Guid Id, string CompanyName, string Email)
+{
+    public static ClientSummaryDto From(Client client) => new(client.Id, client.CompanyName, client.Email);
+}
 
 public sealed record ClientDetailDto(
     Guid Id,
@@ -21,11 +25,12 @@ public sealed record ClientDetailDto(
     string PreferredCurrency,
     bool IsActive);
 
-public class ClientQueries(IRepository<Client> repository)
+public class ClientQueries(InvoicingDbContext dbContext)
 {
     public async Task<Result<ClientDetailDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var client = await repository.GetByIdAsync(id, cancellationToken);
+        var client = await dbContext.Clients.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
         return client is null
             ? Result<ClientDetailDto>.NotFound()
