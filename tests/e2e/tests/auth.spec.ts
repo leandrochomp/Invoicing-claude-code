@@ -20,6 +20,17 @@ test.describe('signed out', () => {
   })
 })
 
+// Uses the shared session rather than signing in again: the auth rate limit is 5 attempts a minute.
+// Sign-out only deletes this context's cookie, so the other specs stay signed in.
+test('signs out and stays signed out after a reload', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+})
+
 test('keeps the session across a reload', async ({ page }) => {
   await page.goto('/')
   await page.reload()
