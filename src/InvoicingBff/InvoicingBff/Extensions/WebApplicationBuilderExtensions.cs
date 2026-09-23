@@ -2,6 +2,9 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingBff.Features.Auth;
 using InvoicingBff.Features.Clients;
+using InvoicingBff.Features.Dashboard;
+using InvoicingBff.Features.Invoices;
+using InvoicingBff.Features.Payments;
 using InvoicingBff.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.RateLimiting;
@@ -22,18 +25,31 @@ public static class WebApplicationBuilderExtensions
             client.BaseAddress = new Uri(invoicingApiBaseUrl);
         });
 
-        // Client CRUD calls carry the caller's JWT (see InvoicingApiAuthHandler), unlike login.
+        // Resource calls carry the caller's JWT (see InvoicingApiAuthHandler), unlike login.
         builder.Services.AddTransient<InvoicingApiAuthHandler>();
-        builder.Services.AddHttpClient<ListClientsHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
-        builder.Services.AddHttpClient<GetClientByIdHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
-        builder.Services.AddHttpClient<CreateClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
-        builder.Services.AddHttpClient<UpdateClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
-        builder.Services.AddHttpClient<DeleteClientHandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
-            .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+        void AddInvoicingApiClient<THandler>()
+            where THandler : class =>
+            builder.Services.AddHttpClient<THandler>(client => client.BaseAddress = new Uri(invoicingApiBaseUrl))
+                .AddHttpMessageHandler<InvoicingApiAuthHandler>();
+
+        AddInvoicingApiClient<ListClientsHandler>();
+        AddInvoicingApiClient<GetClientByIdHandler>();
+        AddInvoicingApiClient<CreateClientHandler>();
+        AddInvoicingApiClient<UpdateClientHandler>();
+        AddInvoicingApiClient<DeleteClientHandler>();
+
+        AddInvoicingApiClient<ListInvoicesHandler>();
+        AddInvoicingApiClient<GetInvoiceByIdHandler>();
+        AddInvoicingApiClient<CreateInvoiceHandler>();
+        AddInvoicingApiClient<UpdateInvoiceHandler>();
+        AddInvoicingApiClient<DeleteInvoiceHandler>();
+
+        AddInvoicingApiClient<ListPaymentsHandler>();
+        AddInvoicingApiClient<CreatePaymentHandler>();
+        AddInvoicingApiClient<UpdatePaymentHandler>();
+        AddInvoicingApiClient<DeletePaymentHandler>();
+
+        AddInvoicingApiClient<GetDashboardSummaryHandler>();
 
         builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

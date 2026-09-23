@@ -1,8 +1,7 @@
-using InvoicingBff.Features.Auth;
-using InvoicingBff.Features.Clients;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 
 namespace InvoicingBff.Tests.TestSupport;
 
@@ -13,23 +12,11 @@ public sealed class BffTestFactory(Func<HttpRequestMessage, HttpResponseMessage>
     {
         builder.UseEnvironment("Development");
 
+        // Swaps the real InvoicingApi transport for the fake one on every typed client AddBffServices
+        // registers, keeping each client's auth-forwarding handler in place.
         builder.ConfigureServices(services =>
-        {
-            services.AddHttpClient<LoginHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-
-            // The auth handler is already registered by AddBffServices; these calls just swap the
-            // real InvoicingApi transport for the fake one, keeping the auth-forwarding handler in place.
-            services.AddHttpClient<ListClientsHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-            services.AddHttpClient<GetClientByIdHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-            services.AddHttpClient<CreateClientHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-            services.AddHttpClient<UpdateClientHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-            services.AddHttpClient<DeleteClientHandler>(client => client.BaseAddress = new Uri("http://invoicing-api.test"))
-                .ConfigurePrimaryHttpMessageHandler(() => new FakeInvoicingApiHandler(apiResponder));
-        });
+            services.ConfigureAll<HttpClientFactoryOptions>(options =>
+                options.HttpMessageHandlerBuilderActions.Add(handlerBuilder =>
+                    handlerBuilder.PrimaryHandler = new FakeInvoicingApiHandler(apiResponder))));
     }
 }
