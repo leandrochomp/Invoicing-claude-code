@@ -21,6 +21,15 @@ public class DeleteClientHandlerTests
         PreferredCurrency = "USD",
     };
 
+    private static readonly DateTimeOffset FixedNow = new(2026, 3, 14, 9, 30, 0, TimeSpan.Zero);
+
+    private static TimeProvider FixedClock()
+    {
+        var clock = Substitute.For<TimeProvider>();
+        clock.GetUtcNow().Returns(FixedNow);
+        return clock;
+    }
+
     [Fact]
     public async Task Returns_not_found_when_client_does_not_exist()
     {
@@ -28,7 +37,7 @@ public class DeleteClientHandlerTests
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Client?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
         var logger = Substitute.For<ILogger<DeleteClientHandler>>();
-        var handler = new DeleteClientHandler(repository, unitOfWork, logger);
+        var handler = new DeleteClientHandler(repository, unitOfWork, FixedClock(), logger);
         var id = Guid.NewGuid();
 
         var result = await handler.HandleAsync(id, Guid.NewGuid());
@@ -45,14 +54,14 @@ public class DeleteClientHandlerTests
         repository.GetByIdAsync(client.Id, Arg.Any<CancellationToken>()).Returns(client);
         var unitOfWork = Substitute.For<IUnitOfWork>();
         var logger = Substitute.For<ILogger<DeleteClientHandler>>();
-        var handler = new DeleteClientHandler(repository, unitOfWork, logger);
+        var handler = new DeleteClientHandler(repository, unitOfWork, FixedClock(), logger);
         var deletedBy = Guid.NewGuid();
 
         var result = await handler.HandleAsync(client.Id, deletedBy);
 
         result.Status.ShouldBe(ResultStatus.NoContent);
         client.IsDeleted.ShouldBeTrue();
-        client.DeletedAt.ShouldNotBeNull();
+        client.DeletedAt.ShouldBe(FixedNow);
         client.DeletedBy.ShouldBe(deletedBy);
         repository.DidNotReceive().Remove(Arg.Any<Client>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());

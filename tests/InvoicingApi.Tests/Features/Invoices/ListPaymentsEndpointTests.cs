@@ -166,7 +166,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         {
             var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
             var tracked = await context.Clients.SingleAsync(c => c.Id == client.Id);
-            tracked.SoftDelete(Guid.NewGuid());
+            tracked.SoftDelete(Guid.NewGuid(), DateTimeOffset.UtcNow);
             await context.SaveChangesAsync();
         }
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
