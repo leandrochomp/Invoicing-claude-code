@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ClientInput, ClientSummary, UpdateClientInput } from '../api/clientsApi'
-import { ClientApiError, createClient, deleteClient, getClient, listClients, updateClient } from '../api/clientsApi'
+import { createClient, deleteClient, getClient, listClients, updateClient } from '../api/clientsApi'
+import { errorMessage } from '../api/http'
 import type { ClientFormValues } from '../components/ClientForm'
 import { ClientForm } from '../components/ClientForm'
+import { ErrorAlert } from '../components/ErrorAlert'
+import { LoadingRows } from '../components/LoadingRows'
 
 type View = { mode: 'list' } | { mode: 'create' } | { mode: 'edit'; id: string; values: ClientFormValues }
 
@@ -36,7 +39,7 @@ export function ClientsPage() {
       setClients(data)
       setListError(null)
     } catch (err) {
-      setListError(err instanceof ClientApiError ? err.message : 'Failed to load clients.')
+      setListError(errorMessage(err, 'Failed to load clients.'))
     } finally {
       setLoading(false)
     }
@@ -69,7 +72,7 @@ export function ClientsPage() {
         },
       })
     } catch (err) {
-      setListError(err instanceof ClientApiError ? err.message : 'Failed to load client.')
+      setListError(errorMessage(err, 'Failed to load client.'))
     }
   }
 
@@ -81,7 +84,7 @@ export function ClientsPage() {
       setView({ mode: 'list' })
       await refresh()
     } catch (err) {
-      setFormError(err instanceof ClientApiError ? err.message : 'Failed to create client.')
+      setFormError(errorMessage(err, 'Failed to create client.'))
     } finally {
       setSubmitting(false)
     }
@@ -96,7 +99,7 @@ export function ClientsPage() {
       setView({ mode: 'list' })
       await refresh()
     } catch (err) {
-      setFormError(err instanceof ClientApiError ? err.message : 'Failed to update client.')
+      setFormError(errorMessage(err, 'Failed to update client.'))
     } finally {
       setSubmitting(false)
     }
@@ -111,7 +114,7 @@ export function ClientsPage() {
       await deleteClient(id)
       await refresh()
     } catch (err) {
-      setListError(err instanceof ClientApiError ? err.message : 'Failed to delete client.')
+      setListError(errorMessage(err, 'Failed to delete client.'))
     }
   }
 
@@ -162,32 +165,16 @@ export function ClientsPage() {
       </header>
 
       {listError && (
-        <div className="form-alert form-alert-row" role="alert">
-          <span>{listError}</span>
-          <button
-            type="button"
-            className="button-secondary button-small"
-            onClick={() => {
-              setLoading(true)
-              refresh()
-            }}
-          >
-            Try again
-          </button>
-        </div>
+        <ErrorAlert
+          message={listError}
+          onRetry={() => {
+            setLoading(true)
+            refresh()
+          }}
+        />
       )}
 
-      {loading && (
-        <div className="panel panel-flush" aria-busy="true">
-          <p className="visually-hidden">Loading clients…</p>
-          {[0, 1, 2].map((row) => (
-            <div key={row} className="skeleton-row" aria-hidden="true">
-              <span className="skeleton skeleton-wide" />
-              <span className="skeleton" />
-            </div>
-          ))}
-        </div>
-      )}
+      {loading && <LoadingRows label="Loading clients…" />}
 
       {!loading && !listError && clients.length === 0 && (
         <div className="panel empty-state">

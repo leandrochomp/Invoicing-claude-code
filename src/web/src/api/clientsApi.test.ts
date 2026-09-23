@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClientInput, UpdateClientInput } from './clientsApi'
-import { ClientApiError, createClient, deleteClient, getClient, listClients, updateClient } from './clientsApi'
+import { createClient, deleteClient, getClient, listClients, updateClient } from './clientsApi'
+import { ApiError } from './http'
 
 const sampleInput: ClientInput = {
   companyName: 'Acme Corp',
@@ -39,7 +40,7 @@ describe('listClients', () => {
     expect(clients).toEqual([{ id: '1', companyName: 'Acme Corp', email: 'billing@acme.test' }])
   })
 
-  it('throws a ClientApiError with the server-provided title on failure', async () => {
+  it('throws an ApiError with the server-provided title on failure', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ title: 'Unable to reach the Invoicing API.' }), { status: 503 }))
 
     await expect(listClients()).rejects.toThrow('Unable to reach the Invoicing API.')
@@ -54,7 +55,7 @@ describe('listClients', () => {
 
     const error = await listClients().catch((err) => err)
 
-    expect(error).toBeInstanceOf(ClientApiError)
+    expect(error).toBeInstanceOf(ApiError)
     expect(error.message).toBe('Email is required. CompanyName is required.')
   })
 })
@@ -115,10 +116,10 @@ describe('deleteClient', () => {
 
     await deleteClient('1')
 
-    expect(fetch).toHaveBeenCalledWith('/bff/clients/1', { method: 'DELETE', credentials: 'include' })
+    expect(fetch).toHaveBeenCalledWith('/bff/clients/1', expect.objectContaining({ method: 'DELETE', credentials: 'include' }))
   })
 
-  it('throws a ClientApiError on failure', async () => {
+  it('throws an ApiError on failure', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ title: 'Forbidden.' }), { status: 403 }))
 
     await expect(deleteClient('1')).rejects.toThrow('Forbidden.')

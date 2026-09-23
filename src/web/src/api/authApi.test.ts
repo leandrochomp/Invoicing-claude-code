@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LoginError, getSession, login, logout } from './authApi'
+import { getSession, login, logout } from './authApi'
+import { ApiError } from './http'
 
 describe('login', () => {
   beforeEach(() => {
@@ -23,21 +24,30 @@ describe('login', () => {
     })
   })
 
-  it('throws a LoginError with the server-provided message on failure', async () => {
+  it('throws an ApiError with the server-provided message and status on failure', async () => {
     vi.mocked(fetch).mockImplementation(
       async () => new Response(JSON.stringify({ title: 'Invalid credentials.' }), { status: 401 }),
     )
 
     const error = await login({ username: 'alice', password: 'wrong' }).catch((err) => err)
 
-    expect(error).toBeInstanceOf(LoginError)
+    expect(error).toBeInstanceOf(ApiError)
     expect(error.message).toBe('Invalid credentials.')
+    expect(error.status).toBe(401)
   })
 
   it('falls back to a generic message when the error body is not JSON', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('not json', { status: 500 }))
 
-    await expect(login({ username: 'alice', password: 'wrong' })).rejects.toThrow('Login failed.')
+    await expect(login({ username: 'alice', password: 'wrong' })).rejects.toThrow('The request failed.')
+  })
+
+  it('joins validation errors from the BFF into the message', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ errors: { Username: ["'Username' must not be empty."] } }), { status: 400 }),
+    )
+
+    await expect(login({ username: '', password: 'secret' })).rejects.toThrow("'Username' must not be empty.")
   })
 })
 

@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LoginError, login } from '../api/authApi'
+import { login } from '../api/authApi'
+import { ApiError } from '../api/http'
 import { LoginPage } from './LoginPage'
 
 vi.mock('../api/authApi', () => ({
   login: vi.fn(),
-  LoginError: class LoginError extends Error {},
 }))
 
 describe('LoginPage', () => {
@@ -29,8 +29,8 @@ describe('LoginPage', () => {
     await waitFor(() => expect(onLoggedIn).toHaveBeenCalledTimes(1))
   })
 
-  it('shows the LoginError message and does not call onLoggedIn on failure', async () => {
-    vi.mocked(login).mockRejectedValue(new LoginError('Invalid credentials.'))
+  it('shows the ApiError message and does not call onLoggedIn on failure', async () => {
+    vi.mocked(login).mockRejectedValue(new ApiError('Invalid credentials.', 401))
     const onLoggedIn = vi.fn()
     const user = userEvent.setup()
 
@@ -103,7 +103,7 @@ describe('LoginPage', () => {
   })
 
   it('keeps the username but clears and focuses the password after a failed sign-in', async () => {
-    vi.mocked(login).mockRejectedValue(new LoginError('Invalid credentials.'))
+    vi.mocked(login).mockRejectedValue(new ApiError('Invalid credentials.', 401))
     const user = userEvent.setup()
 
     render(<LoginPage onLoggedIn={vi.fn()} />)
