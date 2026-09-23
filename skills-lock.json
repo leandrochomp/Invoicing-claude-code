@@ -25,6 +25,12 @@
       "skillPath": "skills/productivity/grill-me/SKILL.md",
       "computedHash": "9cdbb4b8f7a3aeaef82e6230c9e823500d4a8a1214c726cf342cf9829d34fc7d"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "d4cfdc3b7a18041ff02e1ad4b6377450e978e10928ba7e96377ff7d66994b490"
+    },
     "modern-csharp-coding-standards": {
       "source": "aaronontheweb/dotnet-skills",
       "sourceType": "github",
