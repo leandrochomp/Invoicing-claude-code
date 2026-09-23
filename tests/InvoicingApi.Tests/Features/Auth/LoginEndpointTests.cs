@@ -1,5 +1,7 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
@@ -44,6 +46,21 @@ public class LoginEndpointTests(PostgresFixture postgres)
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         body.ShouldNotBeNull();
         body.Token.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Returns_admin_token_for_seeded_admin_user()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("Admin", "P@ssw0rD!"));
+        var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        body.ShouldNotBeNull();
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(body.Token);
+        jwt.Claims.ShouldContain(c => c.Type == ClaimTypes.Role && c.Value == "Admin");
     }
 
     [Fact]
