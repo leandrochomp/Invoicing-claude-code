@@ -97,3 +97,10 @@ Use the `playwright-cli` skill for all browser interaction. Do not use Playwrigh
 - Moq, FluentAssertions, and SQLite bans apply here too.
 - Prefer `getByRole` / `getByLabel` / `getByTestId`. CSS/XPath is a last resort.
 - Database-backed E2E tests use Testcontainers, same as integration tests.
+
+### E2E project (`tests/e2e`)
+- Standalone npm project with `@playwright/test`; not part of the .NET solution or `src/web`.
+- Runs against the local dev stack: start `make dev`, then `make test-e2e`.
+- Credentials come from `E2E_USERNAME` / `E2E_PASSWORD`; `auth.setup.ts` signs in once and saves
+  the session to `tests/e2e/.auth/` (gitignored) for the other specs.
+- Specs that create data use unique names, since they write to the dev database.

@@ -38,3 +38,6 @@ secrets.json
 # Logs & Temp
 *.log
 *.tmp
+
+# Playwright
+.playwright-cli/
