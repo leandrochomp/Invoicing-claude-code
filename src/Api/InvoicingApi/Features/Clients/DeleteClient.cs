@@ -6,7 +6,8 @@ using Shared.Data;
 
 namespace InvoicingApi.Features.Clients;
 
-public class DeleteClientHandler(IRepository<Client> repository, IUnitOfWork unitOfWork)
+public class DeleteClientHandler(
+    IRepository<Client> repository, IUnitOfWork unitOfWork, ILogger<DeleteClientHandler> logger)
 {
     public async Task<Result> HandleAsync(
         Guid id, Guid deletedBy, CancellationToken cancellationToken = default)
@@ -17,11 +18,14 @@ public class DeleteClientHandler(IRepository<Client> repository, IUnitOfWork uni
         var client = await repository.GetByIdAsync(id, cancellationToken);
         if (client is null)
         {
+            logger.LogWarning("Client {ClientId} not found for delete", id);
             return Result.NotFound();
         }
 
         client.SoftDelete(deletedBy);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Client {ClientId} deleted by {DeletedBy}", id, deletedBy);
 
         return Result.NoContent();
     }

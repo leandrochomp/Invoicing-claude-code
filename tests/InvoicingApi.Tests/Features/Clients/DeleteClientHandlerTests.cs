@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using InvoicingApi.Features.Clients;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Shared.Data;
 using Shouldly;
@@ -26,11 +27,14 @@ public class DeleteClientHandlerTests
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Client?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new DeleteClientHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<DeleteClientHandler>>();
+        var handler = new DeleteClientHandler(repository, unitOfWork, logger);
+        var id = Guid.NewGuid();
 
-        var result = await handler.HandleAsync(Guid.NewGuid(), Guid.NewGuid());
+        var result = await handler.HandleAsync(id, Guid.NewGuid());
 
         result.Status.ShouldBe(ResultStatus.NotFound);
+        logger.ReceivedLog(LogLevel.Warning, id.ToString());
     }
 
     [Fact]
@@ -40,7 +44,8 @@ public class DeleteClientHandlerTests
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(client.Id, Arg.Any<CancellationToken>()).Returns(client);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new DeleteClientHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<DeleteClientHandler>>();
+        var handler = new DeleteClientHandler(repository, unitOfWork, logger);
         var deletedBy = Guid.NewGuid();
 
         var result = await handler.HandleAsync(client.Id, deletedBy);
@@ -51,5 +56,6 @@ public class DeleteClientHandlerTests
         client.DeletedBy.ShouldBe(deletedBy);
         repository.DidNotReceive().Remove(Arg.Any<Client>());
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        logger.ReceivedLog(LogLevel.Information, client.Id.ToString());
     }
 }

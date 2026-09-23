@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using InvoicingApi.Features.Clients;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Shared.Data;
 using Shouldly;
@@ -40,11 +41,14 @@ public class UpdateClientHandlerTests
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Client?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new UpdateClientHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<UpdateClientHandler>>();
+        var handler = new UpdateClientHandler(repository, unitOfWork, logger);
+        var id = Guid.NewGuid();
 
-        var result = await handler.HandleAsync(Guid.NewGuid(), UpdateRequest());
+        var result = await handler.HandleAsync(id, UpdateRequest());
 
         result.Status.ShouldBe(ResultStatus.NotFound);
+        logger.ReceivedLog(LogLevel.Warning, id.ToString());
     }
 
     [Fact]
@@ -54,7 +58,8 @@ public class UpdateClientHandlerTests
         var repository = Substitute.For<IRepository<Client>>();
         repository.GetByIdAsync(client.Id, Arg.Any<CancellationToken>()).Returns(client);
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var handler = new UpdateClientHandler(repository, unitOfWork);
+        var logger = Substitute.For<ILogger<UpdateClientHandler>>();
+        var handler = new UpdateClientHandler(repository, unitOfWork, logger);
 
         var result = await handler.HandleAsync(client.Id, UpdateRequest());
 
@@ -64,5 +69,6 @@ public class UpdateClientHandlerTests
         client.IsActive.ShouldBeFalse();
         client.PreferredCurrency.ShouldBe("EUR");
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        logger.ReceivedLog(LogLevel.Information, client.Id.ToString());
     }
 }
