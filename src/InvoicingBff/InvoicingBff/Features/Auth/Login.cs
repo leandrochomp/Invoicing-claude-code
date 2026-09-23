@@ -8,6 +8,7 @@ using InvoicingBff.Infrastructure.Auth;
 using InvoicingBff.Infrastructure.Validation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Shared.Hosting;
 
 namespace InvoicingBff.Features.Auth;
 
@@ -115,7 +116,7 @@ public static class LoginEndpoints
             return Results.Ok(new LoginResponse(attempt.Username!));
         })
         .AddEndpointFilter<ValidationFilter<LoginRequest>>()
-        .RequireRateLimiting("AuthPolicy")
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .WithName("BffLogin")
         .Produces<LoginResponse>()
         .ProducesValidationProblem();

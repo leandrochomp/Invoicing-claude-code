@@ -1,4 +1,3 @@
-using System.Threading.RateLimiting;
 using FluentValidation;
 using InvoicingBff.Features.Auth;
 using InvoicingBff.Features.Clients;
@@ -8,8 +7,7 @@ using InvoicingBff.Features.Payments;
 using InvoicingBff.Infrastructure.Auth;
 using InvoicingBff.Infrastructure.Http;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.RateLimiting;
+using Shared.Hosting;
 
 namespace InvoicingBff.Extensions;
 
@@ -90,24 +88,9 @@ public static class WebApplicationBuilderExtensions
         // If the BFF runs behind a reverse proxy/ingress, honour its X-Forwarded-For so the login
         // limiter partitions by the real browser IP rather than the proxy. Only trusted proxies
         // (loopback by default; add the ingress host in production) can set it.
-        builder.Services.Configure<ForwardedHeadersOptions>(options =>
-        {
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
-            options.ForwardLimit = 1;
-        });
+        builder.Services.AddTrustedForwardedHeaders();
 
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy("AuthPolicy", httpContext => RateLimitPartition.GetFixedWindowLimiter(
-                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 5,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                }));
-        });
+        builder.Services.AddAuthRateLimiter();
 
         builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

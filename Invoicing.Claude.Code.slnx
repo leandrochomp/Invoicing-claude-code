@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Shared/Shared.csproj" />
+    <Project Path="src/Shared.Hosting/Shared.Hosting.csproj" />
   </Folder>
   <Folder Name="/src/Api/">
     <Project Path="src/Api/InvoicingApi/InvoicingApi.csproj" />

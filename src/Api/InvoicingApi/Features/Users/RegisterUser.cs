@@ -4,6 +4,7 @@ using InvoicingApi.Extensions;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.Validation;
 using Microsoft.EntityFrameworkCore;
+using Shared.Hosting;
 
 namespace InvoicingApi.Features.Users;
 
@@ -61,7 +62,7 @@ public static class RegisterUserEndpoints
                 (await handler.HandleAsync(request, cancellationToken)).ToApiResult())
         .AddEndpointFilter<ValidationFilter<RegisterUserRequest>>()
         .RequireAuthorization("AdminOnly")
-        .RequireRateLimiting("AuthPolicy")
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .WithName("RegisterUser")
         .Produces<UserSummaryDto>(StatusCodes.Status201Created)
         .ProducesValidationProblem();
