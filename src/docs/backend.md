@@ -80,6 +80,7 @@ public async Task<Result<ClientSummaryDto>> GetByIdAsync(Guid id, CancellationTo
 - Validation runs in a `ValidationFilter<T>` endpoint filter, attached with `.AddEndpointFilter<ValidationFilter<T>>()`. Do not call `IValidator<T>.ValidateAsync` inside the endpoint body — it must be declarative so it cannot be forgotten.
 - Write endpoints declare their success status: `Results.Created(...)` (201 + `Location`) for POST-create, with `.Produces<T>(StatusCodes.Status201Created)` and `.ProducesValidationProblem()` for OpenAPI.
 - Endpoints are registered via `MapXxxEndpoint(this IEndpointRouteBuilder app)` per feature. Never register endpoints inline in `Program.cs`.
+- Exception: InvoicingBff resource endpoints are pure pass-through proxies. They live in one `XxxEndpoints.cs` per resource (`MapGroup(...).RequireAuthorization()`) and call the typed `InvoicingApiClient` directly from the lambda, with no handler class. Request validation happens in InvoicingApi only; its ValidationProblem is forwarded unchanged.
 
 ```csharp
 app.MapPost("/clients", async (

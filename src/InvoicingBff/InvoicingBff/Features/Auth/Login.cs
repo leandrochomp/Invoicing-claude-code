@@ -1,10 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Text.Json;
 using Ardalis.GuardClauses;
 using FluentValidation;
 using InvoicingBff.Infrastructure.Auth;
+using InvoicingBff.Infrastructure.Http;
 using InvoicingBff.Infrastructure.Validation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -44,16 +44,12 @@ internal sealed record ApiLoginResponse(string Token, DateTimeOffset ExpiresAt);
 
 public class LoginHandler(HttpClient invoicingApiClient, ILogger<LoginHandler> logger)
 {
-    // InvoicingApi serializes with ASP.NET Core's camelCase web defaults; match them here
-    // so response bodies round-trip regardless of the C# property casing on either side.
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public async Task<LoginAttempt> HandleAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         HttpResponseMessage response;
         try
         {
-            response = await invoicingApiClient.PostAsJsonAsync("/auth/login", request, JsonOptions, cancellationToken);
+            response = await invoicingApiClient.PostAsJsonAsync("/auth/login", request, cancellationToken);
         }
         catch (HttpRequestException ex)
         {
@@ -72,7 +68,7 @@ public class LoginHandler(HttpClient invoicingApiClient, ILogger<LoginHandler> l
             return new LoginAttempt(LoginOutcome.UpstreamUnavailable);
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<ApiLoginResponse>(JsonOptions, cancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<ApiLoginResponse>(cancellationToken);
         Guard.Against.Null(payload, message: "InvoicingApi returned a successful login with no body.");
 
         return new LoginAttempt(LoginOutcome.Success, request.Username, payload.Token, payload.ExpiresAt);
@@ -98,7 +94,7 @@ public static class LoginEndpoints
 
             if (attempt.Outcome == LoginOutcome.UpstreamUnavailable)
             {
-                return Results.Problem(title: "Unable to reach the Invoicing API.", statusCode: StatusCodes.Status503ServiceUnavailable);
+                return InvoicingApiClient.Unreachable();
             }
 
             var identity = new ClaimsIdentity(
