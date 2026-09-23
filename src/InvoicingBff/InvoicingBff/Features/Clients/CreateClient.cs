@@ -25,8 +25,8 @@ public class CreateClientRequestValidator : AbstractValidator<CreateClientReques
     {
         RuleFor(x => x.CompanyName).NotEmpty().MaximumLength(255);
         RuleFor(x => x.ContactName).MaximumLength(255);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(255);
-        RuleFor(x => x.Phone).MaximumLength(20);
+        RuleFor(x => x.Email).NotEmpty().ValidEmail().MaximumLength(255);
+        RuleFor(x => x.Phone).ValidPhone().MaximumLength(20);
         RuleFor(x => x.AddressLine1).NotEmpty().MaximumLength(255);
         RuleFor(x => x.AddressLine2).MaximumLength(255);
         RuleFor(x => x.City).NotEmpty().MaximumLength(100);

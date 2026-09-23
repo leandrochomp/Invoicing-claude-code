@@ -199,8 +199,8 @@ h1 {
   font-weight: 600;
 }
 
-.field-optional {
-  color: var(--text-muted);
+.field-required {
+  color: var(--danger);
   font-weight: 400;
 }
 

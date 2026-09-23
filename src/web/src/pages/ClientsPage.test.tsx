@@ -54,14 +54,14 @@ describe('ClientsPage', () => {
     await screen.findByText('Acme Corp')
 
     await user.click(screen.getByRole('button', { name: 'Add client' }))
-    await user.type(screen.getByLabelText('Company name'), 'Globex')
-    await user.type(screen.getByLabelText('Email'), 'billing@globex.test')
-    await user.type(screen.getByLabelText('Address line 1'), '2 Main St')
-    await user.type(screen.getByLabelText('City'), 'Shelbyville')
-    await user.type(screen.getByLabelText('State / region'), 'IL')
-    await user.type(screen.getByLabelText('Postal code'), '62702')
-    await user.type(screen.getByLabelText('Country'), 'US')
-    await user.type(screen.getByLabelText('Preferred currency'), 'USD')
+    await user.type(screen.getByLabelText('Company name *'), 'Globex')
+    await user.type(screen.getByLabelText('Email *'), 'billing@globex.test')
+    await user.type(screen.getByLabelText('Address line 1 *'), '2 Main St')
+    await user.type(screen.getByLabelText('City *'), 'Shelbyville')
+    await user.type(screen.getByLabelText('State / region *'), 'IL')
+    await user.type(screen.getByLabelText('Postal code *'), '62702')
+    await user.type(screen.getByLabelText('Country *'), 'US')
+    await user.type(screen.getByLabelText('Preferred currency *'), 'USD')
     await user.click(screen.getByRole('button', { name: 'Add client' }))
 
     await waitFor(() => expect(createClient).toHaveBeenCalledWith(
