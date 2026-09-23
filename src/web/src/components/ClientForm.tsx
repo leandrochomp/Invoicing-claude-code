@@ -55,6 +55,16 @@ const fieldOrder = Object.keys(fieldRules) as TextField[]
 
 const commonCurrencies = ['AUD', 'USD', 'EUR', 'GBP', 'NZD', 'CAD', 'JPY', 'SGD', 'CHF', 'BRL']
 
+// Same patterns as ContactRuleExtensions in the API and BFF: a dotted domain with a letter TLD, and a
+// phone made of digits, spaces and ( ) . - with an optional leading +.
+const emailPattern =
+  /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/
+
+function isValidPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, '').length
+  return /^\+?[0-9 ().-]+$/.test(value) && digits >= 7 && digits <= 15
+}
+
 function validateField(field: TextField, rawValue: string): string | undefined {
   const value = rawValue.trim()
   const rule = fieldRules[field]
@@ -62,8 +72,11 @@ function validateField(field: TextField, rawValue: string): string | undefined {
   if (rule.required && value === '') {
     return `Enter the ${rule.label.toLowerCase()}.`
   }
-  if (field === 'email' && value !== '' && !/^[^\s@]+@[^\s@]+$/.test(value)) {
+  if (field === 'email' && value !== '' && !emailPattern.test(value)) {
     return 'Enter an email address like name@company.com.'
+  }
+  if (field === 'phone' && value !== '' && !isValidPhone(value)) {
+    return 'Enter a phone number with 7 to 15 digits, like +61 2 5550 1234.'
   }
   if (field === 'preferredCurrency' && value !== '' && !/^[A-Z]{3}$/.test(value)) {
     return 'Use a 3-letter currency code, like AUD or USD.'
@@ -129,7 +142,12 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
       formRef.current?.querySelector<HTMLInputElement>(`#${firstInvalid}`)?.focus()
       return
     }
-    onSubmit(values)
+    // Validation runs on trimmed values, so send those too — the API doesn't trim before checking formats.
+    const trimmed = { ...values }
+    for (const field of fieldOrder) {
+      trimmed[field] = values[field].trim()
+    }
+    onSubmit(trimmed)
   }
 
   function handleCancel() {
@@ -145,7 +163,7 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
   ) {
     const rule = fieldRules[name]
     return (
-      <Field id={name} label={rule.label} optional={!rule.required} hint={options.hint} error={errors[name]} wide={options.wide}>
+      <Field id={name} label={rule.label} required={rule.required} hint={options.hint} error={errors[name]} wide={options.wide}>
         {(describedBy) => (
           <input
             id={name}
@@ -183,7 +201,7 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
               Back to clients
             </button>
             <h1 id="client-form-title">{title}</h1>
-            <p className="page-intro">All fields are required unless marked optional.</p>
+            <p className="page-intro">Fields marked * are required.</p>
           </div>
         </header>
 
