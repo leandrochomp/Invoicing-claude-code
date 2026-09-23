@@ -1,140 +1,166 @@
 # Invoicing-claude-code
 
-* C# 14.0
-* WebAPI (net 10.0)
-* EF Core
+Invoicing REST API with a React client.
 
-# Design Solution:
+* C# 14.0 / .NET 10 Minimal API + EF Core (Npgsql) — `src/Api/InvoicingApi`
+* BFF (Backend-For-Frontend) that brokers cookie auth for the React client — `src/InvoicingBff/InvoicingBff`
+* React + Vite client — `src/web`
+* PostgreSQL 17 (Docker)
 * Vertical Slice Architecture
 
-# Development Tools:
-* dotnet cli
-* Jetbrains Rider 2026.2.1 (Non-commercial)
-* Ubuntu 26.04.1 LTS
+# Prerequisites
 
-# CLI Commands:
-```shell
-dotnet new webapi -o InvoicingApi
-dotnet new web -o InvoicingBff
+* Docker with the compose plugin
+* .NET 10 SDK and the EF Core CLI (`dotnet tool install --global dotnet-ef`) — for migrations and `make run-bff`
+* Node.js 24+ — for the React client
+
+# Architecture
+
 ```
-* root folder:
+browser ──► vite dev server :5173 ──/bff/*──► BFF :7180 ──► API :7073 ──► Postgres :5432
+                                                               │
+                                                               └─ OpenTelemetry ──► Aspire dashboard :18888
+```
+
+The React client never calls the API directly: vite proxies `/bff/*` to the BFF, which holds the
+session cookie and forwards the user's JWT to the API.
+
+Every HTTP hop uses HTTPS with the ASP.NET Core development certificate, including BFF → API
+inside Docker (the api container is reachable as `api.dev.internal`, which the certificate covers).
+
+# Quick start
+
+## 1. Set up the HTTPS dev certificate (once per machine)
 
 ```bash
-dotnet new sln -n Invoicing
-dotnet sln Invoicing.Claude.Code.slnx add src/Api/InvoicingApi/InvoicingApi.csproj
+make certs
 ```
 
-# Environment Variables Setup
+This trusts the ASP.NET Core dev certificate (`dotnet dev-certs https --trust`) and exports it as PEM
+to `~/.aspnet/https/`, where docker compose mounts it and Vite loads it. The exported key never
+lives in the repo. `make up`/`up-api`/`run-web` export it automatically if it's missing, but only
+`make certs` trusts it.
 
-## Setting Up Local Environment Variables
+On Linux, `--trust` covers the .NET/OpenSSL side and, when `certutil` is installed
+(`sudo apt install libnss3-tools`), Chromium- and Firefox-based browsers. If your browser still
+warns about the certificate, import `~/.aspnet/https/invoicing.pem` into its certificate authorities.
 
-This project uses environment variables to manage configuration settings, especially sensitive information like database credentials. To get started:
+## 2. (Optional) configure local settings
 
-1. **Create your local environment file**:
-   ```bash
-   # Navigate to the src directory
-   cd src
-
-   # Copy the template file to create your own .env file
-   cp .env.template .env
-   ```
-
-2. **Edit your .env file**:
-   Open the `.env` file in your code editor and replace the placeholder values with your actual settings:
-   ```
-   # Database Configuration
-   DB_HOST=postgres
-   DB_PORT=5432
-   DB_NAME=invoicing
-   DB_USER=postgres
-   DB_PASSWORD=your_actual_password_here
-   ```
-
-3. **Important Notes**:
-    - The `.env` file contains sensitive information and should **never be committed** to the repository
-    - The `.env.template` file is a template with placeholder values that is safe to commit
-    - If you add new environment variables, remember to update the template file too
-
-## Using Environment Variables
-
-The application will automatically read values from your `.env` file when running with Docker Compose. You can also:
-
-- Override values at runtime: `DB_PASSWORD=custom_password make up`
-- Use different values per environment: Copy `.env` to `.env.development` or `.env.test`
-
-## Available Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| DB_HOST | Database server hostname | postgres |
-| DB_PORT | Database server port | 5432 |
-| DB_NAME | Database name | invoicing |
-| DB_USER | Database username | postgres |
-| DB_PASSWORD | Database password | postgres |
-| ENVIRONMENT | Application environment | Development |
-| DB_MIN_POOL_SIZE | Minimum connection pool size | 1 |
-| DB_MAX_POOL_SIZE | Maximum connection pool size | 20 |
-| DB_INCLUDE_ERROR_DETAIL | Include detailed DB errors | true |
-
-## Alternative: Using .NET User Secrets (Local Development)
-
-1. **Initialize user secrets for the project**:
-   ```bash
-   cd src/Api/InvoicingApi
-   dotnet user-secrets init
-   ```
-
-2. **Add your database credentials to user secrets**:
-   ```bash
-   cd src/App/InvoicingApi
-   dotnet user-secrets set "Database:Host" "localhost"
-   dotnet user-secrets set "Database:Port" "5432"
-   dotnet user-secrets set "Database:Name" "invoicing"
-   dotnet user-secrets set "Database:User" "postgres"
-   dotnet user-secrets set "Database:Password" "your_secure_password"
-
-   # Repeat for other projects as needed
-   ```
-
-3. **View your stored secrets**:
-   ```bash
-   dotnet user-secrets list
-   ```
-
-User secrets are stored in your user profile directory, not in the project files, so they're never committed to source control. This is ideal for developer-specific settings when working directly with the .NET CLI or Visual Studio.
-
-> **Note**: User secrets are for development only. For production, use environment variables, Docker secrets, or a secure vault service.
-
-# Database Migrations
-
-## Prerequisites
-- PostgreSQL installed and running
-- Connection string properly configured in appsettings.json
-
-## Running Migrations
-
-### Create a new migration
-in the root folder of the solution, run the following command to create a new migration:
 ```bash
-dotnet ef migrations add InitialCreate --project Shared --startup-project App/InvoicingApi
+cp .env.example .env   # override Postgres credentials / dev JWT settings; defaults work as-is
 ```
 
-### Generate SQL script(optional)
-in the root folder of the solution, run the following command to generate a SQL script for the migration:
+## 3. Create the database schema (first run, or after `make clean-containers`)
+
+Migrations are **not** applied automatically on startup. Point the EF CLI at the compose database
+via user secrets (once per machine), then apply them:
+
 ```bash
-dotnet ef migrations script --project Shared --startup-project App/InvoicingApi
+make up-api        # starts Postgres (and the api)
+dotnet user-secrets set "ConnectionStrings:Default" \
+  "Host=localhost;Port=5432;Database=invoicing;Username=postgres;Password=postgres" \
+  --project src/Api/InvoicingApi
+make migrate
 ```
 
-### Apply migrations
-in the root folder of the solution, run the following command to apply the migrations to the database:
+Use the credentials from your `.env` if you changed them.
+
+## 4a. Frontend + backend + database
+
 ```bash
-dotnet ef database update --project Shared --startup-project App/InvoicingApi
+make dev
 ```
 
-### Rollback a migration
-in the root folder of the solution, run the following command to rollback the last migration:
+`make dev` = `make up` (Postgres + API + BFF + Aspire dashboard, detached) followed by the React
+dev server in the foreground (installs `node_modules` on first run). Open:
+
+| What              | URL                                |
+|-------------------|------------------------------------|
+| React app         | https://localhost:5173             |
+| BFF               | https://localhost:7180             |
+| API + Scalar docs | https://localhost:7073/scalar/v1   |
+| Aspire dashboard  | http://localhost:18888             |
+
+`Ctrl+C` stops only the React dev server; `make down` stops the containers.
+To run the pieces separately: `make up`, then `make run-web` in another terminal.
+
+## 4b. Backend (with Scalar) + database only
+
 ```bash
-dotnet ef database remove --project Shared --startup-project App/InvoicingApi
+make up-api
 ```
 
+Starts Postgres, the API and the Aspire dashboard. Explore and call the API from Scalar at
+https://localhost:7073/scalar/v1 (OpenAPI document: https://localhost:7073/openapi/v1.json).
 
+To get a token for authorized endpoints, call `POST /auth/register` and then `POST /auth/login`,
+and paste the returned token into Scalar's bearer auth.
+
+## Stopping / resetting
+
+```bash
+make down               # stop containers, keep data
+make clean-containers   # stop containers and delete the database volume (re-run `make migrate` after)
+make logs               # tail logs from all containers
+```
+
+# Running services outside Docker (debugging in Rider)
+
+* **API**: run the `https` launch profile (https://localhost:7073/scalar/v1). It reads
+  `ConnectionStrings:Default` and `Jwt:SigningKey`/`Jwt:Issuer`/`Jwt:Audience` from user secrets.
+  Stop the api container first (`docker compose stop api`) — both use port 7073.
+* **BFF**: `make run-bff` runs it on https://localhost:7180 against https://localhost:7073, which is
+  either the docker API or the API's Rider `https` profile (same port). Start the backend with
+  `make up-api` so the BFF container doesn't hold port 7180. Override with `make run-bff API_URL=...`.
+
+# Make targets
+
+Run `make help` for the full list. Most used:
+
+| Target                       | Description                                              |
+|------------------------------|----------------------------------------------------------|
+| `make certs`                 | Trust + export the HTTPS dev certificate                 |
+| `make dev`                   | Full stack + React dev server                            |
+| `make up`                    | Postgres + API + BFF + Aspire dashboard (detached)       |
+| `make up-api`                | Postgres + API + Aspire dashboard (detached)             |
+| `make run-web`               | React dev server                                         |
+| `make run-bff`               | BFF via `dotnet run` against `API_URL`                   |
+| `make down`                  | Stop containers                                          |
+| `make migrate`               | Apply EF Core migrations                                 |
+| `make migrate-add NAME=Foo`  | Create a new migration                                   |
+| `make test` / `make test-web`| Backend tests (in SDK container) / frontend tests        |
+| `make build` / `make build-web` | Build backend / frontend                              |
+
+# Environment variables (`.env`)
+
+Read by docker compose; see `.env.example`.
+
+| Variable            | Description                           | Default                                       |
+|---------------------|---------------------------------------|-----------------------------------------------|
+| `POSTGRES_USER`     | Database user                         | `postgres`                                    |
+| `POSTGRES_PASSWORD` | Database password                     | `postgres`                                    |
+| `POSTGRES_DB`       | Database name                         | `invoicing`                                   |
+| `POSTGRES_PORT`     | Host port Postgres is published on    | `5432`                                        |
+| `JWT_SIGNING_KEY`   | Dev-only JWT signing key (≥ 32 bytes) | `docker-compose-dev-only-signing-key-32b-min` |
+| `JWT_ISSUER`        | JWT issuer                            | `InvoicingApi.Docker`                         |
+| `JWT_AUDIENCE`      | JWT audience                          | `InvoicingApi.Docker`                         |
+
+`.env` is git-ignored — never commit it. These defaults are for local development only.
+
+# Database migrations
+
+The EF CLI reads the connection string from the API's user secrets (`ConnectionStrings:Default`).
+
+```bash
+make migrate-add NAME=AddSomething   # create a migration in src/Api/InvoicingApi/Migrations
+make migrate                         # apply pending migrations
+
+# generate a SQL script (optional)
+dotnet ef migrations script --project src/Api/InvoicingApi
+
+# remove the last, unapplied migration
+dotnet ef migrations remove --project src/Api/InvoicingApi
+```
+
+Never edit files in `Migrations/` by hand.
