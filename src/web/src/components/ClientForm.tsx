@@ -201,7 +201,6 @@ export function ClientForm({ mode, initialValues, submitting, error, onSubmit, o
               Back to clients
             </button>
             <h1 id="client-form-title">{title}</h1>
-            <p className="page-intro">Fields marked * are required.</p>
           </div>
         </header>
 

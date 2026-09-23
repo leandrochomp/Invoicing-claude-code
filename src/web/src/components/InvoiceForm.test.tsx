@@ -94,13 +94,13 @@ describe('InvoiceForm', () => {
     const user = userEvent.setup()
     const { onSubmit } = renderForm({ initialValues: { ...emptyValues(), clientId: 'client-1', currency: 'USD' } })
 
-    await user.type(screen.getByLabelText('Description (Line 1)'), 'Design')
-    await user.type(screen.getByLabelText('Unit price (Line 1)'), '100')
+    await user.type(screen.getByLabelText('Description (Line 1) *'), 'Design')
+    await user.type(screen.getByLabelText('Unit price (Line 1) *'), '100')
     await user.click(screen.getByRole('button', { name: 'Add line' }))
-    await user.type(screen.getByLabelText('Description (Line 2)'), 'Hosting')
+    await user.type(screen.getByLabelText('Description (Line 2) *'), 'Hosting')
     await user.clear(screen.getByLabelText('Quantity (Line 2)'))
     await user.type(screen.getByLabelText('Quantity (Line 2)'), '2')
-    await user.type(screen.getByLabelText('Unit price (Line 2)'), '25')
+    await user.type(screen.getByLabelText('Unit price (Line 2) *'), '25')
     await user.clear(screen.getByLabelText('Tax % (Line 2)'))
     await user.type(screen.getByLabelText('Tax % (Line 2)'), '10')
 
@@ -120,6 +120,34 @@ describe('InvoiceForm', () => {
     )
   })
 
+  it('marks description and unit price as required, with a tooltip on the asterisk', () => {
+    renderForm()
+
+    expect(screen.getByLabelText('Description (Line 1) *')).toBeRequired()
+    expect(screen.getByLabelText('Unit price (Line 1) *')).toBeRequired()
+    expect(screen.getByLabelText('Quantity (Line 1)')).not.toBeRequired()
+    expect(screen.getByLabelText('Client *').closest('.field')?.querySelector('.field-required')).toHaveAttribute('data-tooltip', 'Required')
+    expect(screen.queryByText('Fields marked * are required.')).not.toBeInTheDocument()
+  })
+
+  it('only adds a line once the existing lines are complete', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.click(screen.getByRole('button', { name: 'Add line' }))
+
+    expect(screen.queryByLabelText('Description (Line 2) *')).not.toBeInTheDocument()
+    expect(screen.getByText('Describe the work or product.')).toBeInTheDocument()
+    expect(screen.getByText('Enter a price of 0 or more.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Description (Line 1) *')).toHaveFocus())
+
+    await user.type(screen.getByLabelText('Description (Line 1) *'), 'Design')
+    await user.type(screen.getByLabelText('Unit price (Line 1) *'), '100')
+    await user.click(screen.getByRole('button', { name: 'Add line' }))
+
+    expect(screen.getByLabelText('Description (Line 2) *')).toBeInTheDocument()
+  })
+
   it('keeps at least one line', () => {
     renderForm()
 
@@ -134,6 +162,6 @@ describe('InvoiceForm focus', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create draft' }))
 
-    await waitFor(() => expect(screen.getByLabelText('Description (Line 1)')).toHaveFocus())
+    await waitFor(() => expect(screen.getByLabelText('Description (Line 1) *')).toHaveFocus())
   })
 })

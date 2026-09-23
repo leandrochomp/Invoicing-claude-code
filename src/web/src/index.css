@@ -208,8 +208,35 @@ h1 {
 }
 
 .field-required {
+  position: relative;
   color: var(--danger);
   font-weight: 400;
+  cursor: help;
+}
+
+.field-required::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 10;
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius) / 2);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.field-required:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .field input:not([type='checkbox']) {

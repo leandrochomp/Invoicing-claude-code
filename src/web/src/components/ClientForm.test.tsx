@@ -46,6 +46,11 @@ describe('ClientForm', () => {
     expect(screen.getByLabelText('Contact name')).not.toBeRequired()
     expect(screen.getByLabelText('Company name *')).toBeRequired()
     expect(screen.queryByText(/optional/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Fields marked * are required.')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Company name *').closest('.field')?.querySelector('.field-required')).toHaveAttribute(
+      'data-tooltip',
+      'Required',
+    )
   })
 
   it('shows inline errors, focuses the first invalid field and does not submit an empty form', async () => {
