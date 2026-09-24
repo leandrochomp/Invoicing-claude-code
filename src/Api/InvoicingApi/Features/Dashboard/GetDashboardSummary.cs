@@ -3,6 +3,7 @@ using InvoicingApi.Extensions;
 using InvoicingApi.Features.Invoices;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Shared.Configuration;
 
 namespace InvoicingApi.Features.Dashboard;
 
@@ -41,9 +42,10 @@ public class DashboardQueries(InvoicingDbContext dbContext, PaymentQueries payme
 
         // Overdue is never stored: it's derived from a Sent invoice's due date (InvoiceLifecycle).
         // Clients are soft-deleted behind a query filter; money still owed by a deleted client still counts.
+        // Only the soft-delete filter is lifted: the tenant filter still applies.
         var openInvoices = await dbContext.Invoices
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([SoftDeleteQueryFilter.Name])
             .Where(i => i.Status == InvoiceStatus.Sent)
             .Select(i => new
             {

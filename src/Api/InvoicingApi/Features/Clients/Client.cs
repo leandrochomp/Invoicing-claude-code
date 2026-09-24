@@ -1,10 +1,13 @@
 using InvoicingApi.Features.Invoices;
+using InvoicingApi.Infrastructure.Tenancy;
 using Shared.Entities;
 
 namespace InvoicingApi.Features.Clients;
 
-public class Client : SoftDeletableEntity
+public class Client : SoftDeletableEntity, ITenantOwned
 {
+    public Guid TenantId { get; init; }
+
     public required string CompanyName { get; set; }
     public string? ContactName { get; set; }
     public required string Email { get; set; }

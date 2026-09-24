@@ -25,7 +25,7 @@ public class LoginEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -36,12 +36,14 @@ public class LoginEndpointTests(PostgresFixture postgres)
     private static async Task SeedUserAsync(WebApplicationFactory<Program> factory, string username, string password)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         context.Users.Add(new User
         {
             Username = username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = UserRole.User,
+            TenantId = TestTenancy.DefaultTenantId,
+            TenantRole = TenantRole.Member,
         });
         await context.SaveChangesAsync();
     }

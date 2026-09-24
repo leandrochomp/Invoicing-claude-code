@@ -23,11 +23,6 @@ public class PaymentConfiguration : EntityConfiguration<Payment>
         builder.Property(p => p.Notes)
             .HasMaxLength(500);
 
-        builder.HasOne(p => p.Invoice)
-            .WithMany(i => i.Payments)
-            .HasForeignKey(p => p.InvoiceId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(p => p.InvoiceId);
+        // The relationship to Invoice, a composite (TenantId, InvoiceId) key, is configured in InvoiceConfiguration.
     }
 }

@@ -1,9 +1,12 @@
+using InvoicingApi.Infrastructure.Tenancy;
 using Shared.Entities;
 
 namespace InvoicingApi.Features.Invoices;
 
-public class InvoiceItem : Entity
+public class InvoiceItem : Entity, ITenantOwned
 {
+    public Guid TenantId { get; init; }
+
     public required Guid InvoiceId { get; set; }
 
     public required string Description { get; set; }

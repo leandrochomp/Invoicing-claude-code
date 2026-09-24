@@ -30,11 +30,8 @@ public class InvoiceItemConfiguration : EntityConfiguration<InvoiceItem>
         builder.Property(ii => ii.SortOrder)
             .HasDefaultValue(0);
 
-        builder.HasOne(ii => ii.Invoice)
-            .WithMany(i => i.Items)
-            .HasForeignKey(ii => ii.InvoiceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasIndex(ii => new { ii.InvoiceId, ii.SortOrder });
+        // The relationship to Invoice, a composite (TenantId, InvoiceId) key, is configured in InvoiceConfiguration.
+        // This index leads with the foreign key's columns, so it also serves as the foreign key's index.
+        builder.HasIndex(ii => new { ii.TenantId, ii.InvoiceId, ii.SortOrder });
     }
 }

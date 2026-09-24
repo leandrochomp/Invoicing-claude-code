@@ -15,7 +15,7 @@ internal static class InvoiceHandlerTestData
             .EnableServiceProviderCaching(false)
             .Options;
 
-        var context = new InvoicingDbContext(options);
+        var context = new InvoicingDbContext(options, TestTenancy.Default);
         await context.Database.MigrateAsync();
 
         return context;

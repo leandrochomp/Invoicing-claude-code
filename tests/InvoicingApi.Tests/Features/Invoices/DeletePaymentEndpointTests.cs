@@ -24,7 +24,7 @@ public class DeletePaymentEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -34,7 +34,7 @@ public class DeletePaymentEndpointTests(PostgresFixture postgres)
         WebApplicationFactory<Program> factory, decimal paymentAmount = 40m)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
 
         var client = new Client
         {

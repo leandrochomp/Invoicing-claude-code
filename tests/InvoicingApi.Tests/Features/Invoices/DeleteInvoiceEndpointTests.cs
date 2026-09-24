@@ -23,7 +23,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -33,7 +33,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
         WebApplicationFactory<Program> factory, bool withPayment = false, InvoiceStatus status = InvoiceStatus.Draft)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
 
         var client = new Client
         {

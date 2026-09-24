@@ -24,7 +24,7 @@ public class CreatePaymentEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -33,7 +33,7 @@ public class CreatePaymentEndpointTests(PostgresFixture postgres)
     private static async Task<Invoice> SeedInvoiceAsync(WebApplicationFactory<Program> factory, InvoiceStatus status = InvoiceStatus.Sent)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
 
         var client = new Client
         {

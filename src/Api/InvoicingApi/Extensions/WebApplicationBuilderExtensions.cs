@@ -7,7 +7,9 @@ using InvoicingApi.Features.Invoices;
 using InvoicingApi.Features.Users;
 using InvoicingApi.Infrastructure.Data;
 using InvoicingApi.Infrastructure.ExceptionHandling;
+using InvoicingApi.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
@@ -69,7 +71,19 @@ public static class WebApplicationBuilderExtensions
                 };
             });
 
+        // The default policy (what a bare RequireAuthorization() uses) fails closed: every tenant endpoint
+        // needs a valid tenant_id claim, so the tenantless Admin, or any token without a tenant, gets 403
+        // instead of running with no tenant.
+        var tenantUser = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .RequireAssertion(context => TenantClaims.GetTenantId(context.User) is not null)
+            .Build();
+
         builder.Services.AddAuthorizationBuilder()
+            .SetDefaultPolicy(tenantUser)
+            .AddPolicy("TenantOwner", policy => policy
+                .Combine(tenantUser)
+                .RequireClaim(TenantClaims.TenantRole, nameof(TenantRole.Owner)))
             .AddPolicy("AdminOnly", policy => policy.RequireRole(nameof(UserRole.Admin)));
 
         // The API only receives traffic from the BFF, so Connection.RemoteIpAddress is always the
@@ -81,6 +95,9 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddTrustedForwardedHeaders();
 
         builder.Services.AddAuthRateLimiter();
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddScoped<RegisterUserHandler>();

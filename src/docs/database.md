@@ -16,6 +16,15 @@ All entities use soft delete by default. Never hard-delete rows.
 
 Entities inherit from `SoftDeletableEntity`
 
+## Multi-tenancy
+
+Tenant-owned entities implement `ITenantOwned` and carry a non-null `TenantId`. See `security.md` (Multi-tenancy) for how isolation is enforced.
+
+- Never set `TenantId` in a handler. `InvoicingDbContext` stamps it on insert from the request's tenant.
+- Never call a bare `IgnoreQueryFilters()`. Name the filter you mean: `IgnoreQueryFilters([SoftDeleteQueryFilter.Name])`. Only `Features/Admin/` handlers may ignore `TenantQueryFilter.Name`.
+- A new tenant-owned entity gets the `"Tenant"` filter automatically by implementing `ITenantOwned`. Also give it composite foreign keys that include `TenantId`, and include `TenantId` in its unique indexes where uniqueness is per tenant (as in `(TenantId, InvoiceNumber)`).
+- Adding tenancy made no backfill migration: the dev database holds only test data, so reset it (`make clean-containers`, then `make migrate`) if `AddTenants` fails on existing rows.
+
 ## Stack
 [PostgreSQL 17](postgres:17-alpine) running in Docker. No local Postgres install.
 

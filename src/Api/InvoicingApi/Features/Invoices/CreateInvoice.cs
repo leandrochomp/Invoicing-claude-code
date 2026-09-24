@@ -105,6 +105,6 @@ public class CreateInvoiceHandler(InvoicingDbContext dbContext, TimeProvider tim
         return Result<InvoiceDto>.Error("Could not allocate a unique invoice number after several attempts. Please retry.");
 
         static bool IsInvoiceNumberConflict(DbUpdateException ex) =>
-            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_Invoices_InvoiceNumber" };
+            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_Invoices_TenantId_InvoiceNumber" };
     }
 }
