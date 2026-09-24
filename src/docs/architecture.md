@@ -7,6 +7,8 @@ request, handler, validation, response, and endpoint in a single folder. Cross-c
 concerns (validation pipeline, telemetry, persistence) are handled at the infrastructure
 level, not per-feature.
 
+![Solution architecture: runtime flow and project references](architecture.png)
+
 ## Stack
 
 | Concern | Choice |
