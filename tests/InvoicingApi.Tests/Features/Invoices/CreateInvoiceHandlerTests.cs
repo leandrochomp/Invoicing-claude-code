@@ -23,7 +23,7 @@ public class CreateInvoiceHandlerTests(PostgresFixture postgres)
         await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
         var client = await InvoiceHandlerTestData.SeedClientAsync(context);
         var logger = Substitute.For<ILogger<CreateInvoiceHandler>>();
-        var handler = new CreateInvoiceHandler(context, logger);
+        var handler = new CreateInvoiceHandler(context, TimeProvider.System, logger);
 
         var result = await handler.HandleAsync(ValidRequest(client.Id));
 
@@ -36,7 +36,7 @@ public class CreateInvoiceHandlerTests(PostgresFixture postgres)
     {
         await using var context = await InvoiceHandlerTestData.CreateContextAsync(postgres);
         var logger = Substitute.For<ILogger<CreateInvoiceHandler>>();
-        var handler = new CreateInvoiceHandler(context, logger);
+        var handler = new CreateInvoiceHandler(context, TimeProvider.System, logger);
         var clientId = Guid.NewGuid();
 
         var result = await handler.HandleAsync(ValidRequest(clientId));

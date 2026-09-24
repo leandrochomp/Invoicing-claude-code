@@ -9,7 +9,6 @@ public class UpdateInvoiceValidatorTests
 
     private static UpdateInvoiceRequest ValidRequest() => new(
         ClientId: Guid.NewGuid(),
-        Status: InvoiceStatus.Draft,
         IssueDate: DateTimeOffset.UtcNow,
         DueDate: DateTimeOffset.UtcNow.AddDays(30),
         Currency: "USD",
@@ -23,16 +22,6 @@ public class UpdateInvoiceValidatorTests
         var result = await Validator.ValidateAsync(ValidRequest());
 
         result.IsValid.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task Invalid_status_fails()
-    {
-        var request = ValidRequest() with { Status = (InvoiceStatus)999 };
-
-        var result = await Validator.ValidateAsync(request);
-
-        result.IsValid.ShouldBeFalse();
     }
 
     [Fact]

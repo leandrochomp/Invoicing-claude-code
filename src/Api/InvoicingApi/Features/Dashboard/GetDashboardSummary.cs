@@ -39,13 +39,12 @@ public class DashboardQueries(InvoicingDbContext dbContext, PaymentQueries payme
     {
         var now = timeProvider.GetUtcNow();
 
-        // Nothing flips a Sent invoice to Overdue in the background, so "overdue" is derived from the
-        // due date here rather than trusted from the stored status alone.
+        // Overdue is never stored: it's derived from a Sent invoice's due date (InvoiceLifecycle).
         // Clients are soft-deleted behind a query filter; money still owed by a deleted client still counts.
         var openInvoices = await dbContext.Invoices
             .AsNoTracking()
             .IgnoreQueryFilters()
-            .Where(i => i.Status == InvoiceStatus.Sent || i.Status == InvoiceStatus.Overdue)
+            .Where(i => i.Status == InvoiceStatus.Sent)
             .Select(i => new
             {
                 i.Id,
@@ -66,12 +65,12 @@ public class DashboardQueries(InvoicingDbContext dbContext, PaymentQueries payme
                 i.InvoiceNumber,
                 i.ClientId,
                 i.ClientName,
-                i.Status,
+                InvoiceLifecycle.DisplayStatus(i.Status, i.DueDate, now),
                 i.DueDate,
                 i.Currency,
                 i.GrandTotal,
                 i.AmountDue,
-                IsOverdue: i.Status == InvoiceStatus.Overdue || i.DueDate < now))
+                IsOverdue: InvoiceLifecycle.IsOverdue(i.Status, i.DueDate, now)))
             .ToList();
 
         var statusCounts = await dbContext.Invoices

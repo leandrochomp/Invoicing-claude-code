@@ -29,7 +29,8 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
-    private static async Task<Invoice> SeedInvoiceAsync(WebApplicationFactory<Program> factory, bool withPayment = false)
+    private static async Task<Invoice> SeedInvoiceAsync(
+        WebApplicationFactory<Program> factory, bool withPayment = false, InvoiceStatus status = InvoiceStatus.Draft)
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
@@ -54,6 +55,7 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
             IssueDate = DateTimeOffset.UtcNow,
             DueDate = DateTimeOffset.UtcNow.AddDays(30),
             Currency = "USD",
+            Status = status,
         };
         context.Invoices.Add(invoice);
 
@@ -107,6 +109,23 @@ public class DeleteInvoiceEndpointTests(PostgresFixture postgres)
         var response = await httpClient.DeleteAsync($"/invoices/{invoice.Id}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Theory]
+    [InlineData(InvoiceStatus.Sent)]
+    [InlineData(InvoiceStatus.Paid)]
+    [InlineData(InvoiceStatus.Void)]
+    public async Task Returns_conflict_and_keeps_invoice_when_not_draft(InvoiceStatus status)
+    {
+        await using var factory = await CreateFactoryAsync();
+        var invoice = await SeedInvoiceAsync(factory, status: status);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
+
+        var response = await httpClient.DeleteAsync($"/invoices/{invoice.Id}");
+        var getResponse = await httpClient.GetAsync($"/invoices/{invoice.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

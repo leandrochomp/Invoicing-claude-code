@@ -9,7 +9,6 @@ public sealed record UpdateInvoiceItemRequest(Guid? Id, string Description, deci
 
 public sealed record UpdateInvoiceRequest(
     Guid ClientId,
-    InvoiceStatus Status,
     DateTimeOffset IssueDate,
     DateTimeOffset DueDate,
     string Currency,
@@ -34,7 +33,6 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceRequ
     public UpdateInvoiceValidator()
     {
         RuleFor(r => r.ClientId).NotEmpty();
-        RuleFor(r => r.Status).IsInEnum();
         RuleFor(r => r.Currency).NotEmpty().Length(3);
         RuleFor(r => r.Notes).MaximumLength(4000);
         RuleFor(r => r.DueDate).GreaterThanOrEqualTo(r => r.IssueDate);
@@ -44,7 +42,8 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceRequ
     }
 }
 
-public class UpdateInvoiceHandler(InvoicingDbContext dbContext, ILogger<UpdateInvoiceHandler> logger)
+// Status never changes here: see SendInvoice, VoidInvoice and PaymentStatusUpdater.
+public class UpdateInvoiceHandler(InvoicingDbContext dbContext, TimeProvider timeProvider, ILogger<UpdateInvoiceHandler> logger)
 {
     public async Task<Result<InvoiceDto>> HandleAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
@@ -58,28 +57,68 @@ public class UpdateInvoiceHandler(InvoicingDbContext dbContext, ILogger<UpdateIn
             return Result<InvoiceDto>.NotFound();
         }
 
-        var clientExists = await dbContext.Clients.AnyAsync(c => c.Id == request.ClientId, cancellationToken);
-        if (!clientExists)
+        switch (invoice.Status)
         {
-            logger.LogWarning("Client {ClientId} not found for update of invoice {InvoiceId}", request.ClientId, id);
-            return Result<InvoiceDto>.Invalid(new ValidationError
+            case InvoiceStatus.Draft:
+                break;
+            case InvoiceStatus.Sent when !InvoiceLifecycle.ChangesFrozenContent(invoice, request):
+                break;
+            case InvoiceStatus.Sent:
+                logger.LogWarning("Invoice {InvoiceId} not updated: only notes can change once sent", id);
+                return Result<InvoiceDto>.Conflict(["A sent invoice is frozen: only its notes can be changed."]);
+            default:
+                logger.LogWarning("Invoice {InvoiceId} not updated: status {InvoiceStatus} is final", id, invoice.Status);
+                return Result<InvoiceDto>.Conflict([$"A {invoice.Status.ToString().ToLowerInvariant()} invoice can't be changed."]);
+        }
+
+        if (invoice.Status == InvoiceStatus.Draft)
+        {
+            var clientExists = await dbContext.Clients.AnyAsync(c => c.Id == request.ClientId, cancellationToken);
+            if (!clientExists)
             {
-                Identifier = nameof(request.ClientId),
-                ErrorMessage = $"Client '{request.ClientId}' does not exist.",
-            });
+                logger.LogWarning("Client {ClientId} not found for update of invoice {InvoiceId}", request.ClientId, id);
+                return Result<InvoiceDto>.Invalid(new ValidationError
+                {
+                    Identifier = nameof(request.ClientId),
+                    ErrorMessage = $"Client '{request.ClientId}' does not exist.",
+                });
+            }
         }
 
         // Compare against the version the caller last read, not the value we just loaded,
         // so a stale write is rejected even though this fresh load always matches its own row.
         dbContext.Entry(invoice).Property(i => i.Version).OriginalValue = request.Version;
 
+        invoice.Notes = request.Notes;
+        invoice.Version++;
+
+        if (invoice.Status == InvoiceStatus.Draft)
+        {
+            ApplyDraftContent(invoice, request);
+        }
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            logger.LogWarning(
+                "Concurrency conflict updating invoice {InvoiceId} at version {Version}", id, request.Version);
+            return Result<InvoiceDto>.Conflict(["The invoice was modified by another request. Reload and try again."]);
+        }
+
+        logger.LogInformation("Invoice {InvoiceId} updated to version {Version}", invoice.Id, invoice.Version);
+
+        return InvoiceQueries.ToDto(invoice, timeProvider.GetUtcNow());
+    }
+
+    private void ApplyDraftContent(Invoice invoice, UpdateInvoiceRequest request)
+    {
         invoice.ClientId = request.ClientId;
-        invoice.Status = request.Status;
         invoice.IssueDate = request.IssueDate;
         invoice.DueDate = request.DueDate;
         invoice.Currency = request.Currency;
-        invoice.Notes = request.Notes;
-        invoice.Version++;
 
         var requestedIds = request.Items
             .Where(i => i.Id.HasValue)
@@ -126,20 +165,5 @@ public class UpdateInvoiceHandler(InvoicingDbContext dbContext, ILogger<UpdateIn
         }
 
         InvoiceTotals.Recalculate(invoice);
-
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            logger.LogWarning(
-                "Concurrency conflict updating invoice {InvoiceId} at version {Version}", id, request.Version);
-            return Result<InvoiceDto>.Conflict(["The invoice was modified by another request. Reload and try again."]);
-        }
-
-        logger.LogInformation("Invoice {InvoiceId} updated to version {Version}", invoice.Id, invoice.Version);
-
-        return InvoiceQueries.ToDto(invoice);
     }
 }
