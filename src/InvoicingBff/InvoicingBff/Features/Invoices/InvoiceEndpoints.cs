@@ -16,13 +16,15 @@ public sealed record UpdateInvoiceItemRequest(Guid? Id, string Description, deci
 
 public sealed record UpdateInvoiceRequest(
     Guid ClientId,
-    InvoiceStatus Status,
     DateTimeOffset IssueDate,
     DateTimeOffset DueDate,
     string Currency,
     string? Notes,
     int Version,
     IReadOnlyList<UpdateInvoiceItemRequest> Items);
+
+// Body of the send and void actions: the version the caller last read.
+public sealed record InvoiceActionRequest(int Version);
 
 public static class InvoiceEndpoints
 {
@@ -60,6 +62,16 @@ public static class InvoiceEndpoints
         invoices.MapDelete("/{id:guid}", (Guid id, InvoicingApiClient api, CancellationToken ct) =>
             api.DeleteAsync($"/invoices/{id}", ct))
             .WithName("BffDeleteInvoice");
+
+        invoices.MapPost("/{id:guid}/send", (Guid id, InvoiceActionRequest request, InvoicingApiClient api, CancellationToken ct) =>
+            api.PostAsync($"/invoices/{id}/send", request, ct))
+            .WithName("BffSendInvoice")
+            .ProducesValidationProblem();
+
+        invoices.MapPost("/{id:guid}/void", (Guid id, InvoiceActionRequest request, InvoicingApiClient api, CancellationToken ct) =>
+            api.PostAsync($"/invoices/{id}/void", request, ct))
+            .WithName("BffVoidInvoice")
+            .ProducesValidationProblem();
 
         return app;
     }

@@ -141,7 +141,6 @@ public class InvoicesEndpointTests
 
         var response = await client.PutAsJsonAsync($"/bff/invoices/{InvoiceId}", new UpdateInvoiceRequest(
             ClientId,
-            InvoiceStatus.Sent,
             IssueDate,
             IssueDate.AddDays(30),
             "USD",
@@ -163,5 +162,44 @@ public class InvoicesEndpointTests
         var response = await client.DeleteAsync($"/bff/invoices/{InvoiceId}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Theory]
+    [InlineData("send")]
+    [InlineData("void")]
+    public async Task InvoiceAction_ForwardsVersionToInvoicingApi(string action)
+    {
+        string? forwardedBody = null;
+        using var factory = new BffTestFactory(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == $"/invoices/{InvoiceId}/{action}" && request.Method == HttpMethod.Post)
+            {
+                forwardedBody = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return JsonResponse(HttpStatusCode.OK, $$"""{"id":"{{InvoiceId}}"}""");
+            }
+
+            return JsonResponse(HttpStatusCode.OK, ValidLoginJson);
+        });
+        using var client = await AuthenticatedAsync(factory);
+
+        var response = await client.PostAsJsonAsync($"/bff/invoices/{InvoiceId}/{action}", new InvoiceActionRequest(Version: 4));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        forwardedBody.ShouldBe("""{"version":4}""");
+    }
+
+    [Theory]
+    [InlineData("send")]
+    [InlineData("void")]
+    public async Task InvoiceAction_WhenApiRejectsTransition_PassesConflictThrough(string action)
+    {
+        using var factory = new BffTestFactory(request => request.RequestUri!.AbsolutePath == $"/invoices/{InvoiceId}/{action}"
+            ? ProblemResponse(HttpStatusCode.Conflict, """{"title":"Conflict","status":409}""")
+            : JsonResponse(HttpStatusCode.OK, ValidLoginJson));
+        using var client = await AuthenticatedAsync(factory);
+
+        var response = await client.PostAsJsonAsync($"/bff/invoices/{InvoiceId}/{action}", new InvoiceActionRequest(Version: 4));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 }
