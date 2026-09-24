@@ -1,6 +1,7 @@
 using Ardalis.Result;
 using InvoicingApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Shared.Configuration;
 using Shared.Data;
 
 namespace InvoicingApi.Features.Invoices;
@@ -36,8 +37,9 @@ public class PaymentQueries(InvoicingDbContext dbContext)
     public async Task<Result<PagedResponse<PaymentLedgerItemDto>>> ListAsync(Guid? clientId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         // Clients are soft-deleted behind a query filter; a payment against a since-deleted client is
-        // still money received, so the ledger must keep showing it.
-        var query = dbContext.Payments.AsNoTracking().IgnoreQueryFilters();
+        // still money received, so the ledger must keep showing it. Only the soft-delete filter is lifted:
+        // the tenant filter still applies.
+        var query = dbContext.Payments.AsNoTracking().IgnoreQueryFilters([SoftDeleteQueryFilter.Name]);
         if (clientId is not null)
         {
             query = query.Where(p => p.Invoice!.ClientId == clientId);

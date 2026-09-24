@@ -20,7 +20,7 @@ public class LoginHandlerTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        var context = new InvoicingDbContext(options);
+        var context = new InvoicingDbContext(options, TestTenancy.Default);
         await context.Database.MigrateAsync();
 
         return context;
@@ -50,6 +50,8 @@ public class LoginHandlerTests(PostgresFixture postgres)
             Username = username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-horse-battery-staple"),
             Role = UserRole.User,
+            TenantId = TestTenancy.DefaultTenantId,
+            TenantRole = TenantRole.Member,
         });
         await context.SaveChangesAsync();
         var logger = Substitute.For<ILogger<LoginHandler>>();
@@ -72,6 +74,8 @@ public class LoginHandlerTests(PostgresFixture postgres)
             Username = username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-horse-battery-staple"),
             Role = UserRole.User,
+            TenantId = TestTenancy.DefaultTenantId,
+            TenantRole = TenantRole.Member,
         });
         await context.SaveChangesAsync();
         var logger = Substitute.For<ILogger<LoginHandler>>();

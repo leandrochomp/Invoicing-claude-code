@@ -16,7 +16,7 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Invoice));
 
         entity.ShouldNotBeNull();
@@ -31,7 +31,7 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Invoice))!;
         var statusProp = entity.FindProperty(nameof(Invoice.Status))!;
 
@@ -46,7 +46,7 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Invoice))!;
 
         var subTotalProp = entity.FindProperty(nameof(Invoice.SubTotal))!;
@@ -66,7 +66,7 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Invoice))!;
         var invoiceNumberIndex = entity.GetIndexes()
             .FirstOrDefault(i => i.Properties.Any(p => p.Name == nameof(Invoice.InvoiceNumber)))!;
@@ -82,7 +82,7 @@ public class InvoiceConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Invoice))!;
         var paymentsNavigation = entity.FindNavigation(nameof(Invoice.Payments))!;
 

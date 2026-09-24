@@ -1,3 +1,4 @@
+using InvoicingApi.Features.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Configuration;
@@ -24,6 +25,20 @@ public class UserConfiguration : SoftDeletableEntityConfiguration<User>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Property(u => u.TenantRole)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.HasOne(u => u.Tenant)
+            .WithMany()
+            .HasForeignKey(u => u.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // The Admin is the only user without a tenant; every other user has a tenant and a tenant role.
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_Users_TenantMembership",
+            """("Role" = 'Admin' AND "TenantId" IS NULL AND "TenantRole" IS NULL) OR ("Role" <> 'Admin' AND "TenantId" IS NOT NULL AND "TenantRole" IS NOT NULL)"""));
+
         builder.Property(u => u.IsDeleted)
             .HasDefaultValue(false);
 
@@ -35,6 +50,16 @@ public class UserConfiguration : SoftDeletableEntityConfiguration<User>
             Username = SeedAdminUser.Username,
             PasswordHash = SeedAdminUser.PasswordHash,
             Role = UserRole.Admin,
+        });
+
+        builder.HasData(new User
+        {
+            Id = SeedDevTenant.OwnerId,
+            Username = SeedDevTenant.OwnerUsername,
+            PasswordHash = SeedDevTenant.OwnerPasswordHash,
+            Role = UserRole.User,
+            TenantId = SeedDevTenant.Id,
+            TenantRole = TenantRole.Owner,
         });
     }
 }

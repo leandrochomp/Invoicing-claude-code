@@ -1,9 +1,14 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text;
 using InvoicingApi.Features.Auth;
 using InvoicingApi.Features.Users;
+using InvoicingApi.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace InvoicingApi.Tests;
 
@@ -25,16 +30,28 @@ public static class TestJwt
         builder.UseSetting("hostBuilder:reloadConfigOnChange", "false");
     }
 
+    // A UserRole.User token acts for tenantId (the default test tenant if omitted) as tenantRole
+    // (Member if omitted). An Admin token never carries a tenant.
     public static HttpClient AuthorizedClient(
-        WebApplicationFactory<Program> factory, UserRole role, string username = "test-user", Guid? userId = null)
+        WebApplicationFactory<Program> factory,
+        UserRole role,
+        string username = "test-user",
+        Guid? userId = null,
+        Guid? tenantId = null,
+        TenantRole? tenantRole = null)
     {
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", CreateToken(role, username, userId));
+            new AuthenticationHeaderValue("Bearer", CreateToken(role, username, userId, tenantId, tenantRole));
         return client;
     }
 
-    public static string CreateToken(UserRole role, string username = "test-user", Guid? userId = null)
+    public static string CreateToken(
+        UserRole role,
+        string username = "test-user",
+        Guid? userId = null,
+        Guid? tenantId = null,
+        TenantRole? tenantRole = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -51,8 +68,37 @@ public static class TestJwt
             Username = username,
             PasswordHash = "not-used-for-token-generation",
             Role = role,
+            TenantId = role == UserRole.Admin ? null : tenantId ?? TestTenancy.DefaultTenantId,
+            TenantRole = role == UserRole.Admin ? null : tenantRole ?? TenantRole.Member,
         };
 
         return new JwtTokenService(configuration, TimeProvider.System).GenerateToken(user).Token;
+    }
+
+    // A validly signed UserRole.User token whose tenant_id claim is the given raw value (omitted when null),
+    // for tokens JwtTokenService would never issue.
+    public static string CreateTokenWithTenantClaim(string? tenantClaim)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, Guid.CreateVersion7().ToString()),
+            new(ClaimTypes.Name, "test-user"),
+            new(ClaimTypes.Role, nameof(UserRole.User)),
+            new(TenantClaims.TenantRole, nameof(TenantRole.Owner)),
+        };
+        if (tenantClaim is not null)
+        {
+            claims.Add(new Claim(TenantClaims.TenantId, tenantClaim));
+        }
+
+        var token = new JwtSecurityToken(
+            issuer: Issuer,
+            audience: Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(5),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey)), SecurityAlgorithms.HmacSha256));
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

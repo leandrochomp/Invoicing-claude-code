@@ -16,7 +16,7 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Payment));
 
         entity.ShouldNotBeNull();
@@ -31,7 +31,7 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Payment))!;
         var methodProp = entity.FindProperty(nameof(Payment.Method))!;
 
@@ -46,7 +46,7 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Payment))!;
         var amountProp = entity.FindProperty(nameof(Payment.Amount))!;
 
@@ -61,7 +61,7 @@ public class PaymentConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Payment))!;
         var invoiceNavigation = entity.FindNavigation(nameof(Payment.Invoice))!;
 

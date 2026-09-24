@@ -33,7 +33,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -42,7 +42,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
     private static async Task<(Client Client, Invoice Invoice)> SeedInvoiceAsync(WebApplicationFactory<Program> factory, string companyName, string currency = "USD")
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
 
         var client = new Client
         {
@@ -86,7 +86,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
     private static async Task SeedPaymentAsync(WebApplicationFactory<Program> factory, Guid invoiceId, decimal amount, DateTimeOffset paymentDate)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
 
         context.Payments.Add(new Payment
         {
@@ -165,7 +165,7 @@ public class ListPaymentsEndpointTests(PostgresFixture postgres)
         await SeedPaymentAsync(factory, invoice.Id, 75m, DateTimeOffset.UtcNow);
         using (var scope = factory.Services.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+            await using var context = scope.ServiceProvider.CreateDbContext();
             var tracked = await context.Clients.SingleAsync(c => c.Id == client.Id);
             tracked.SoftDelete(Guid.NewGuid(), DateTimeOffset.UtcNow);
             await context.SaveChangesAsync();

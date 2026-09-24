@@ -22,7 +22,7 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -30,7 +30,8 @@ public class RegisterUserEndpointTests(PostgresFixture postgres)
 
     private static RegisterUserRequest ValidRequest() => new(
         Username: $"user-{Guid.NewGuid()}",
-        Password: "correct-horse-battery-staple");
+        Password: "correct-horse-battery-staple",
+        TenantName: "Acme Ltd");
 
     [Fact]
     public async Task Returns_created_for_admin_with_valid_request()

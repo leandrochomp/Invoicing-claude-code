@@ -15,8 +15,12 @@ public class InvoiceConfiguration : EntityConfiguration<Invoice>
             .IsRequired()
             .ValueGeneratedNever();
 
-        builder.HasIndex(i => i.InvoiceNumber)
+        // Invoice numbers run 1, 2, 3... separately for each tenant.
+        builder.HasIndex(i => new { i.TenantId, i.InvoiceNumber })
             .IsUnique();
+
+        // Target of the composite (TenantId, InvoiceId) foreign keys from InvoiceItems and Payments.
+        builder.HasAlternateKey(i => new { i.TenantId, i.Id });
 
         builder.Property(i => i.Status)
             .HasConversion<int>()
@@ -44,19 +48,24 @@ public class InvoiceConfiguration : EntityConfiguration<Invoice>
         builder.Property(i => i.Notes)
             .HasMaxLength(4000);
 
+        // Composite foreign keys that include TenantId, so the database itself rejects a reference
+        // across tenants even if a handler forgets to check.
         builder.HasOne(i => i.Client)
             .WithMany(c => c.Invoices)
-            .HasForeignKey(i => i.ClientId)
+            .HasForeignKey(i => new { i.TenantId, i.ClientId })
+            .HasPrincipalKey(c => new { c.TenantId, c.Id })
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(i => i.Items)
             .WithOne(ii => ii.Invoice)
-            .HasForeignKey(ii => ii.InvoiceId)
+            .HasForeignKey(ii => new { ii.TenantId, ii.InvoiceId })
+            .HasPrincipalKey(i => new { i.TenantId, i.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(i => i.Payments)
             .WithOne(p => p.Invoice)
-            .HasForeignKey(p => p.InvoiceId)
+            .HasForeignKey(p => new { p.TenantId, p.InvoiceId })
+            .HasPrincipalKey(i => new { i.TenantId, i.Id })
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

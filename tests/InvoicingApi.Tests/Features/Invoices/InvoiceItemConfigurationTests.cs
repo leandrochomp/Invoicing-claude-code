@@ -16,7 +16,7 @@ public class InvoiceItemConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(InvoiceItem));
 
         entity.ShouldNotBeNull();
@@ -31,7 +31,7 @@ public class InvoiceItemConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(InvoiceItem))!;
 
         var quantityProp = entity.FindProperty(nameof(InvoiceItem.Quantity))!;
@@ -53,7 +53,7 @@ public class InvoiceItemConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(InvoiceItem))!;
         var invoiceNavigation = entity.FindNavigation(nameof(InvoiceItem.Invoice))!;
 

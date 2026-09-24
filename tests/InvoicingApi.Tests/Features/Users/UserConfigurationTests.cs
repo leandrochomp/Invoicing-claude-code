@@ -15,7 +15,7 @@ public class UserConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        return new InvoicingDbContext(options);
+        return new InvoicingDbContext(options, TestTenancy.Default);
     }
 
     [Fact]
@@ -35,9 +35,8 @@ public class UserConfigurationTests(PostgresFixture postgres)
         using var context = CreateContext();
         var entity = context.Model.FindEntityType(typeof(User))!;
 
-        var index = entity.GetIndexes().ShouldHaveSingleItem();
+        var index = entity.GetIndexes().Where(i => i.IsUnique).ShouldHaveSingleItem();
         index.Properties.ShouldHaveSingleItem().Name.ShouldBe(nameof(User.Username));
-        index.IsUnique.ShouldBeTrue();
     }
 
     [Fact]

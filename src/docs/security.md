@@ -3,7 +3,8 @@
 ## Stack
 - **Authentication**: JWT Bearer tokens
 - **Password hashing**: BCrypt.Net-Next
-- **Authorization**: ASP.NET Core policy-based, driven by role claims (`AdminOnly` policy for admin-gated actions; every other authenticated endpoint just requires a valid token)
+- **Authorization**: ASP.NET Core policy-based, driven by JWT claims. The default policy (a bare `RequireAuthorization()`) requires a valid `tenant_id` claim; `TenantOwner` also requires `tenant_role=Owner`; `AdminOnly` requires the global `Admin` role
+- **Tenant isolation**: see [Multi-tenancy](#multi-tenancy) below
 - **Rate limiting**: ASP.NET Core's built-in fixed-window limiter (`Microsoft.AspNetCore.RateLimiting`), applied to `/auth/login` and `/auth/register`
 - **Transport**: HTTPS enforced via `UseHttpsRedirection` + `UseHsts` (non-Development)
 
@@ -11,7 +12,7 @@
 
 | # | Category | How this codebase addresses it |
 |---|----------|---------------------------------|
-| A01 | Broken Access Control | Every business endpoint requires a valid JWT (`RequireAuthorization()`); `DELETE /clients/{id}` and `POST /auth/register` additionally require the `AdminOnly` policy — accounts are provisioned by an admin, not self-served. Only `/auth/login`, `/health`, and the OpenAPI/Scalar docs routes stay anonymous. |
+| A01 | Broken Access Control | Every business endpoint requires a valid JWT carrying a tenant (`RequireAuthorization()` uses the tenant-requiring default policy), and every query on tenant-owned data is scoped to that tenant (see [Multi-tenancy](#multi-tenancy)), so one tenant can't read or change another's rows by guessing IDs (OWASP API1, BOLA). `DELETE /clients/{id}` requires the `TenantOwner` policy; `POST /auth/register` requires `AdminOnly`, so accounts are provisioned by an admin, not self-served. Only `/auth/login`, `/health`, and the OpenAPI/Scalar docs routes stay anonymous. |
 | A02 | Cryptographic Failures | Passwords are hashed with BCrypt, never stored or logged in plain text. JWTs are signed with HMACSHA256 using a signing key whose minimum length (32 bytes / 256 bits) is enforced at startup. Secrets (`Jwt:SigningKey`, `ConnectionStrings:Default`) live only in user secrets, never in `appsettings.json` or source control. Transport is HTTPS-only. |
 | A03 | Injection | All data access goes through EF Core's parameterized LINQ — no raw SQL or string-built queries anywhere in the codebase. Endpoints bind to dedicated request DTOs, never directly to entities, so there's no mass-assignment path either. FluentValidation runs on every request DTO. The React app (`/src/web`) must not use `dangerouslySetInnerHTML`/`innerHTML` on unsanitized data. It never handles the InvoicingApi JWT directly — `InvoicingBff` holds it server-side behind an httpOnly cookie (see `frontend.md`'s Auth flow section) — which also removes the JWT-in-`localStorage` XSS exposure. **Known gap**: no Content-Security-Policy yet. |
 | A04 | Insecure Design | Layered error handling — FluentValidation (request shape) → Ardalis.GuardClauses (impossible states) → `Ardalis.Result` (business outcomes) — keeps validation, invariants, and business rules from blurring together. Entities use soft delete instead of hard delete. Login returns a generic `401` on bad credentials rather than revealing whether the username exists. |
@@ -22,10 +23,23 @@
 | A09 | Security Logging & Monitoring Failures | OpenTelemetry tracing/logging is wired up for the whole request pipeline (`AddOpenTelemetry()` in `WebApplicationBuilderExtensions.cs`), unhandled exceptions are logged centrally by `GlobalExceptionHandler`, and every write handler logs its outcome via `ILogger<T>` (successful and failed logins, registrations, and client/invoice/payment create/update/delete including not-found, conflict, and concurrency rejections). Passwords and tokens are never logged. **Known gap**: role changes aren't an API operation yet, so there's no audit event for them. |
 | A10 | Server-Side Request Forgery (SSRF) | Not applicable today — the API makes no outbound HTTP requests driven by user-supplied input. Revisit if a future feature adds webhooks, URL fetching, or similar. |
 
+## Multi-tenancy
+
+Clients, invoices, invoice items and payments are **tenant-owned** (`ITenantOwned`). Isolation is enforced in layers, so a single missed check doesn't leak data:
+
+1. **Tenant from the token only.** `JwtTokenService` adds `tenant_id` and `tenant_role` claims for tenant users. `ITenantContext` reads the tenant from the signed JWT, never from the route, query string, body or forwarded headers.
+2. **Fail closed.** A token without a valid `tenant_id` gets `403` on every tenant endpoint, including the global Admin's. With no tenant, the query filter matches nothing and inserts throw.
+3. **EF Core named query filter `"Tenant"`** on every tenant-owned entity (`InvoicingDbContext`), next to the named `"SoftDelete"` filter. To include soft-deleted rows, call `IgnoreQueryFilters([SoftDeleteQueryFilter.Name])`. A bare `IgnoreQueryFilters()` would also drop the tenant filter. An architecture test forbids it, and forbids ignoring the tenant filter anywhere outside `Features/Admin/`.
+4. **`TenantId` is stamped, never bound.** `InvoicingDbContext.SaveChanges` sets `TenantId` on new tenant-owned rows from `ITenantContext`, and throws if a row being written belongs to another tenant or its `TenantId` changed. Request DTOs have no `TenantId`.
+5. **Composite foreign keys.** Invoices reference `Clients(TenantId, Id)`; items and payments reference `Invoices(TenantId, Id)`. The database rejects a reference across tenants even if application code misses it.
+
+**Roles.** `UserRole` is global: `User` or `Admin`. A `User` has exactly one tenant and a `TenantRole` (`Owner` or `Member`). The `Admin` has no tenant (a check constraint on `Users` enforces both rules) and gets no data from tenant endpoints. Admin cross-tenant read access through `/admin` is tracked in #53. `Users` is not tenant-filtered, because login and username uniqueness look users up across every tenant.
+
 ## Known limitations / roadmap
 - **No refresh tokens or token revocation.** JWTs are stateless; a compromised token is valid until it expires (60 minutes) — there's no server-side blacklist/allowlist. Logout, password changes, and role changes don't invalidate outstanding tokens.
 - **No CORS policy on InvoicingBff, by design.** The React app (`/src/web`) never calls InvoicingApi directly, and the Vite dev server proxies `/bff/*` to `InvoicingBff` so the browser sees a single origin (production is expected to serve the built SPA from the BFF too). If a feature ever needs the SPA and BFF on genuinely different origins, that's the point to add an explicit origin allow-list — never a wildcard combined with credentials.
 - **No Content-Security-Policy yet.** `src/web/index.html` now exists; add a CSP header (likely from `InvoicingBff`, since it's the origin serving the page) as a follow-up.
 - **No CI-based dependency vulnerability scanning.** The .NET SDK's NuGet Audit runs locally on restore, but nothing enforces it in CI (there is no CI yet).
 - **Default Admin account seeded by migrations (learning project only).** The `SeedAdminUser` migration inserts `Username: Admin` / `Password: P@ssw0rD!` (BCrypt-hashed, seeded via `HasData` in `UserConfiguration`). The credentials are public in source control — this API is not production ready; never ship this seed to a real environment.
-- **Account creation is admin-provisioned, not self-service.** `POST /auth/register` requires the `AdminOnly` policy and always creates a `User`-role account; there is no anonymous sign-up path (the React app never calls it, and the BFF exposes no `/bff/register`). Promoting someone to `Admin`, beyond the seeded `Admin`, is still a manual database update rather than an API operation.
+- **Seeded dev tenant Owner (learning project only).** Migrations also seed the tenant `Dev Tenant` with its Owner `Username: Owner` / `Password: P@ssw0rD!` (`SeedDevTenant`), so the local stack and the E2E suite have a tenant user to sign in as. The same caveats as the Admin seed apply.
+- **Account creation is admin-provisioned, not self-service.** `POST /auth/register` requires the `AdminOnly` policy. It creates a new tenant named `tenantName`, with the new `User`-role account as its Owner. There is no anonymous sign-up path (the React app never calls it, and the BFF exposes no `/bff/register`). Members join through invites (#54). Promoting someone to `Admin`, beyond the seeded `Admin`, is still a manual database update rather than an API operation.

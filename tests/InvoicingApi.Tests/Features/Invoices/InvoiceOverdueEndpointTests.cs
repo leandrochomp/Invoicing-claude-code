@@ -29,7 +29,7 @@ public class InvoiceOverdueEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -38,7 +38,7 @@ public class InvoiceOverdueEndpointTests(PostgresFixture postgres)
     private static async Task<Invoice> SeedInvoiceAsync(WebApplicationFactory<Program> factory, InvoiceStatus status, DateTimeOffset dueDate)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         return await InvoiceHandlerTestData.SeedInvoiceAsync(context, status, dueDate: dueDate);
     }
 

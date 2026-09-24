@@ -1,3 +1,4 @@
+using InvoicingApi.Features.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Configuration;
@@ -55,9 +56,13 @@ public class ClientConfiguration : SoftDeletableEntityConfiguration<Client>
         builder.Property(c => c.IsDeleted)
             .HasDefaultValue(false);
 
-        builder.HasMany(c => c.Invoices)
-            .WithOne(i => i.Client)
-            .HasForeignKey(i => i.ClientId)
+        builder.HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(c => c.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Target of the composite (TenantId, ClientId) foreign key from Invoices (see InvoiceConfiguration),
+        // so the database rejects an invoice that points at another tenant's client.
+        builder.HasAlternateKey(c => new { c.TenantId, c.Id });
     }
 }

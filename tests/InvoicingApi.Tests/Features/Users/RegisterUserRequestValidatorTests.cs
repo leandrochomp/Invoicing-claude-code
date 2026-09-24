@@ -9,7 +9,8 @@ public class RegisterUserRequestValidatorTests
 
     private static RegisterUserRequest ValidRequest() => new(
         Username: "jane.doe",
-        Password: "correct-horse-battery-staple");
+        Password: "correct-horse-battery-staple",
+        TenantName: "Acme Ltd");
 
     [Fact]
     public void Valid_request_passes()
@@ -50,5 +51,16 @@ public class RegisterUserRequestValidatorTests
 
         result.IsValid.ShouldBeFalse();
         result.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterUserRequest.Password));
+    }
+
+    [Fact]
+    public void Empty_tenant_name_fails()
+    {
+        var request = ValidRequest() with { TenantName = string.Empty };
+
+        var result = Validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterUserRequest.TenantName));
     }
 }

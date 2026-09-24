@@ -50,7 +50,7 @@ public static class DeleteClientEndpoints
 
             return (await handler.HandleAsync(id, deletedBy, cancellationToken)).ToApiResult();
         })
-        .RequireAuthorization("AdminOnly")
+        .RequireAuthorization("TenantOwner")
         .WithName("DeleteClient");
 
         return app;

@@ -94,8 +94,10 @@ make up-api
 Starts Postgres, the API and the Aspire dashboard. Explore and call the API from Scalar at
 https://localhost:7073/scalar/v1 (OpenAPI document: https://localhost:7073/openapi/v1.json).
 
-To get a token for authorized endpoints, call `POST /auth/register` and then `POST /auth/login`,
-and paste the returned token into Scalar's bearer auth.
+To get a token for authorized endpoints, call `POST /auth/login` as the seeded tenant owner
+(`Owner` / `P@ssw0rD!`) and paste the returned token into Scalar's bearer auth. The seeded `Admin` has no
+tenant, so its token is refused by the invoicing endpoints. It can call `POST /auth/register` to create a
+new tenant with its own Owner.
 
 ## Stopping / resetting
 

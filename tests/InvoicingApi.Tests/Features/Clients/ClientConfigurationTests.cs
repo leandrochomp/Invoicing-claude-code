@@ -16,7 +16,7 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Client));
 
         entity.ShouldNotBeNull();
@@ -31,7 +31,7 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Client))!;
 
         var companyNameProp = entity.FindProperty(nameof(Client.CompanyName))!;
@@ -53,7 +53,7 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Client))!;
 
         var contactNameProp = entity.FindProperty(nameof(Client.ContactName))!;
@@ -75,7 +75,7 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Client))!;
         var invoicesNavigation = entity.FindNavigation(nameof(Client.Invoices))!;
 
@@ -90,7 +90,7 @@ public class ClientConfigurationTests(PostgresFixture postgres)
             .EnableServiceProviderCaching(false)
             .Options;
 
-        using var context = new InvoicingDbContext(options);
+        using var context = new InvoicingDbContext(options, TestTenancy.Default);
         var entity = context.Model.FindEntityType(typeof(Client))!;
 
         entity.GetDeclaredQueryFilters().ShouldNotBeEmpty();

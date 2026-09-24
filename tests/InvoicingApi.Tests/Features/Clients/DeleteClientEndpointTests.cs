@@ -23,7 +23,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
             });
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         await context.Database.MigrateAsync();
 
         return factory;
@@ -44,7 +44,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
         };
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
+        await using var context = scope.ServiceProvider.CreateDbContext();
         context.Clients.Add(clientEntity);
         await context.SaveChangesAsync();
 
@@ -52,11 +52,11 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Returns_no_content_for_admin()
+    public async Task Returns_no_content_for_tenant_owner()
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
-        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User, tenantRole: TenantRole.Owner);
 
         var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
 
@@ -64,11 +64,23 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Returns_forbidden_for_non_admin_user()
+    public async Task Returns_forbidden_for_tenant_member()
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
         using var client = TestJwt.AuthorizedClient(factory, UserRole.User);
+
+        var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Returns_forbidden_for_admin_who_has_no_tenant()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var clientEntity = await SeedClientAsync(factory);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
 
         var response = await client.DeleteAsync($"/clients/{clientEntity.Id}");
 
@@ -91,7 +103,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     public async Task Returns_not_found_for_unknown_client()
     {
         await using var factory = await CreateFactoryAsync();
-        using var client = TestJwt.AuthorizedClient(factory, UserRole.Admin);
+        using var client = TestJwt.AuthorizedClient(factory, UserRole.User, tenantRole: TenantRole.Owner);
 
         var response = await client.DeleteAsync($"/clients/{Guid.NewGuid()}");
 
@@ -103,7 +115,7 @@ public class DeleteClientEndpointTests(PostgresFixture postgres)
     {
         await using var factory = await CreateFactoryAsync();
         var clientEntity = await SeedClientAsync(factory);
-        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.Admin);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User, tenantRole: TenantRole.Owner);
 
         var deleteResponse = await httpClient.DeleteAsync($"/clients/{clientEntity.Id}");
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
