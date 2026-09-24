@@ -78,9 +78,9 @@ describe('InvoicesPage list', () => {
     expect(await screen.findByText('Deleted client')).toBeInTheDocument()
   })
 
-  it('shows a sent invoice past its due date as overdue', async () => {
+  it('shows the overdue status the API reports', async () => {
     vi.mocked(listInvoices).mockResolvedValue({
-      items: [{ ...summary, status: InvoiceStatus.Sent, dueDate: '2020-01-01T00:00:00+00:00' }],
+      items: [{ ...summary, status: InvoiceStatus.Overdue, dueDate: '2020-01-01T00:00:00+00:00' }],
       page: 1,
       pageSize: 25,
       totalRecords: 1,
@@ -193,7 +193,6 @@ describe('InvoicesPage edit', () => {
       expect(updateInvoice).toHaveBeenCalledWith(
         'inv-1',
         expect.objectContaining({
-          status: InvoiceStatus.Draft,
           version: 2,
           notes: 'Thanks!',
           items: [{ id: 'item-1', description: 'Strategy consulting', quantity: 2, unitPrice: 150, taxRate: 0.1, sortOrder: 0 }],
@@ -201,5 +200,15 @@ describe('InvoicesPage edit', () => {
       ),
     )
     expect(window.location.hash).toBe('#/invoices/inv-1')
+    expect(vi.mocked(updateInvoice).mock.calls[0][1]).not.toHaveProperty('status')
+  })
+
+  it('won’t edit an invoice that has been sent', async () => {
+    vi.mocked(getInvoice).mockResolvedValue({ ...invoice, status: InvoiceStatus.Sent })
+
+    render(<InvoicesPage route={{ page: 'invoices', view: 'edit', id: 'inv-1' }} />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only a draft invoice can be edited')
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
   })
 })

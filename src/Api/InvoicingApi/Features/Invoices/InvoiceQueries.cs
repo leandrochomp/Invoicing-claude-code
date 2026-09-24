@@ -25,7 +25,7 @@ public sealed record InvoiceDto(
 
 public sealed record InvoiceSummaryDto(Guid Id, Guid ClientId, int InvoiceNumber, InvoiceStatus Status, DateTimeOffset IssueDate, DateTimeOffset DueDate, string Currency, decimal GrandTotal);
 
-public class InvoiceQueries(InvoicingDbContext dbContext)
+public class InvoiceQueries(InvoicingDbContext dbContext, TimeProvider timeProvider)
 {
     public async Task<Result<InvoiceDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -37,34 +37,47 @@ public class InvoiceQueries(InvoicingDbContext dbContext)
 
         return invoice is null
             ? Result<InvoiceDto>.NotFound()
-            : ToDto(invoice);
+            : ToDto(invoice, timeProvider.GetUtcNow());
     }
 
     public async Task<Result<PagedResponse<InvoiceSummaryDto>>> ListAsync(Guid? clientId, InvoiceStatus? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
+        var overdueCutoff = InvoiceLifecycle.OverdueCutoff(timeProvider.GetUtcNow());
         var query = dbContext.Invoices.AsNoTracking().AsQueryable();
         if (clientId is not null)
         {
             query = query.Where(i => i.ClientId == clientId);
         }
 
-        if (status is not null)
+        // Overdue is never stored: it's a Sent invoice past its due date, so it's split out of Sent here.
+        query = status switch
         {
-            query = query.Where(i => i.Status == status);
-        }
+            null => query,
+            InvoiceStatus.Overdue => query.Where(i => i.Status == InvoiceStatus.Sent && i.DueDate < overdueCutoff),
+            InvoiceStatus.Sent => query.Where(i => i.Status == InvoiceStatus.Sent && i.DueDate >= overdueCutoff),
+            _ => query.Where(i => i.Status == status),
+        };
 
         return await query
             .OrderByDescending(i => i.IssueDate)
             .ThenByDescending(i => i.InvoiceNumber)
-            .Select(i => new InvoiceSummaryDto(i.Id, i.ClientId, i.InvoiceNumber, i.Status, i.IssueDate, i.DueDate, i.Currency, i.GrandTotal))
+            .Select(i => new InvoiceSummaryDto(
+                i.Id,
+                i.ClientId,
+                i.InvoiceNumber,
+                i.Status == InvoiceStatus.Sent && i.DueDate < overdueCutoff ? InvoiceStatus.Overdue : i.Status,
+                i.IssueDate,
+                i.DueDate,
+                i.Currency,
+                i.GrandTotal))
             .ToPagedAsync(page, pageSize, cancellationToken);
     }
 
-    internal static InvoiceDto ToDto(Invoice invoice) => new(
+    internal static InvoiceDto ToDto(Invoice invoice, DateTimeOffset now) => new(
         invoice.Id,
         invoice.ClientId,
         invoice.InvoiceNumber,
-        invoice.Status,
+        InvoiceLifecycle.DisplayStatus(invoice.Status, invoice.DueDate, now),
         invoice.IssueDate,
         invoice.DueDate,
         invoice.Currency,

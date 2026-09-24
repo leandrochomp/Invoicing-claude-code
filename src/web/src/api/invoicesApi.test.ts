@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Invoice } from './invoicesApi'
-import { InvoiceStatus, balanceDue, createInvoice, deleteInvoice, listInvoices, toUpdateInput, updateInvoice } from './invoicesApi'
+import {
+  InvoiceStatus,
+  balanceDue,
+  createInvoice,
+  deleteInvoice,
+  listInvoices,
+  sendInvoice,
+  toUpdateInput,
+  updateInvoice,
+  voidInvoice,
+} from './invoicesApi'
 
 const invoice: Invoice = {
   id: 'inv-1',
@@ -64,17 +74,37 @@ describe('updateInvoice and deleteInvoice', () => {
   })
 })
 
+describe('sendInvoice and voidInvoice', () => {
+  it('post to the action endpoint with the version the invoice was loaded at', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(invoice)))
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(invoice)))
+
+    await sendInvoice('inv-1', 4)
+    await voidInvoice('inv-1', 5)
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/bff/invoices/inv-1/send',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ version: 4 }) }),
+    )
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/bff/invoices/inv-1/void',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ version: 5 }) }),
+    )
+  })
+})
+
 describe('toUpdateInput', () => {
-  it('keeps the loaded invoice, its line ids and version, and applies the changes', () => {
-    const input = toUpdateInput(invoice, { status: InvoiceStatus.Void })
+  it('keeps the loaded invoice, its line ids and version, and applies the changes, without a status', () => {
+    const input = toUpdateInput(invoice, { notes: 'Net 30' })
 
     expect(input).toEqual({
       clientId: 'client-1',
-      status: InvoiceStatus.Void,
       issueDate: invoice.issueDate,
       dueDate: invoice.dueDate,
       currency: 'USD',
-      notes: null,
+      notes: 'Net 30',
       version: 4,
       items: [{ id: 'item-1', description: 'Consulting', quantity: 2, unitPrice: 150, taxRate: 0.1, sortOrder: 0 }],
     })

@@ -30,7 +30,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         return factory;
     }
 
-    private static async Task<Invoice> SeedInvoiceAsync(WebApplicationFactory<Program> factory)
+    private static async Task<Invoice> SeedInvoiceAsync(WebApplicationFactory<Program> factory, InvoiceStatus status = InvoiceStatus.Draft)
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<InvoicingDbContext>();
@@ -55,6 +55,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
             IssueDate = DateTimeOffset.UtcNow,
             DueDate = DateTimeOffset.UtcNow.AddDays(30),
             Currency = "USD",
+            Status = status,
         };
         invoice.Items.Add(new InvoiceItem
         {
@@ -87,7 +88,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         await using var factory = await CreateFactoryAsync();
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
         var request = new UpdateInvoiceRequest(
-            Guid.NewGuid(), InvoiceStatus.Draft, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
+            Guid.NewGuid(), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
             [new UpdateInvoiceItemRequest(null, "Widget", 1, 10m, 0, 0)]);
 
         var response = await httpClient.PutAsJsonAsync($"/invoices/{Guid.NewGuid()}", request);
@@ -104,7 +105,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
 
         var request = new UpdateInvoiceRequest(
-            invoice.ClientId, InvoiceStatus.Sent, invoice.IssueDate, invoice.DueDate, "USD", "Updated", invoice.Version,
+            invoice.ClientId, invoice.IssueDate, invoice.DueDate, "USD", "Updated", invoice.Version,
             [
                 new UpdateInvoiceItemRequest(keptItemId, "Keep me", 1, 10m, 0, 0),
                 new UpdateInvoiceItemRequest(null, "New item", 2, 15m, 0, 1),
@@ -115,7 +116,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         body.ShouldNotBeNull();
-        body.Status.ShouldBe(InvoiceStatus.Sent);
+        body.Status.ShouldBe(InvoiceStatus.Draft);
         body.Items.Count.ShouldBe(2);
         body.Items.ShouldContain(i => i.Description == "New item");
         body.Items.ShouldNotContain(i => i.Description == "Remove me");
@@ -132,7 +133,7 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         var staleVersion = invoice.Version + 1;
 
         var request = new UpdateInvoiceRequest(
-            invoice.ClientId, InvoiceStatus.Sent, invoice.IssueDate, invoice.DueDate, "USD", null, staleVersion,
+            invoice.ClientId, invoice.IssueDate, invoice.DueDate, "USD", null, staleVersion,
             [new UpdateInvoiceItemRequest(null, "Widget", 1, 10m, 0, 0)]);
 
         var response = await httpClient.PutAsJsonAsync($"/invoices/{invoice.Id}", request);
@@ -146,11 +147,88 @@ public class UpdateInvoiceEndpointTests(PostgresFixture postgres)
         await using var factory = await CreateFactoryAsync();
         using var httpClient = factory.CreateClient();
         var request = new UpdateInvoiceRequest(
-            Guid.NewGuid(), InvoiceStatus.Draft, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
+            Guid.NewGuid(), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), "USD", null, 0,
             [new UpdateInvoiceItemRequest(null, "Widget", 1, 10m, 0, 0)]);
 
         var response = await httpClient.PutAsJsonAsync($"/invoices/{Guid.NewGuid()}", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // Echoes the invoice back exactly as the API returned it, the way the web client does.
+    private static async Task<UpdateInvoiceRequest> UnchangedRequestAsync(HttpClient httpClient, Guid id, string? notes = null)
+    {
+        var invoice = await httpClient.GetFromJsonAsync<InvoiceDto>($"/invoices/{id}");
+        invoice.ShouldNotBeNull();
+        return new UpdateInvoiceRequest(
+            invoice.ClientId,
+            invoice.IssueDate,
+            invoice.DueDate,
+            invoice.Currency,
+            notes,
+            invoice.Version,
+            invoice.Items.Select(i => new UpdateInvoiceItemRequest(i.Id, i.Description, i.Quantity, i.UnitPrice, i.TaxRate, i.SortOrder)).ToList());
+    }
+
+    [Fact]
+    public async Task Ignores_a_status_in_the_body_so_a_draft_cannot_be_marked_paid()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var invoice = await SeedInvoiceAsync(factory);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
+        var request = await UnchangedRequestAsync(httpClient, invoice.Id);
+
+        // Status is no longer part of UpdateInvoiceRequest, so send it the way an old client would.
+        var response = await httpClient.PutAsJsonAsync($"/invoices/{invoice.Id}", new
+        {
+            request.ClientId,
+            Status = InvoiceStatus.Paid,
+            request.IssueDate,
+            request.DueDate,
+            request.Currency,
+            request.Notes,
+            request.Version,
+            request.Items,
+        });
+        var body = await response.Content.ReadFromJsonAsync<InvoiceDto>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        body.ShouldNotBeNull();
+        body.Status.ShouldBe(InvoiceStatus.Draft);
+    }
+
+    [Fact]
+    public async Task Updates_notes_on_a_sent_invoice()
+    {
+        await using var factory = await CreateFactoryAsync();
+        var invoice = await SeedInvoiceAsync(factory, InvoiceStatus.Sent);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
+
+        var response = await httpClient.PutAsJsonAsync($"/invoices/{invoice.Id}", await UnchangedRequestAsync(httpClient, invoice.Id, notes: "Net 30"));
+        var body = await response.Content.ReadFromJsonAsync<InvoiceDto>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        body.ShouldNotBeNull();
+        body.Notes.ShouldBe("Net 30");
+        body.Status.ShouldBe(InvoiceStatus.Sent);
+    }
+
+    [Theory]
+    [InlineData(InvoiceStatus.Sent)]
+    [InlineData(InvoiceStatus.Paid)]
+    [InlineData(InvoiceStatus.Void)]
+    public async Task Returns_conflict_when_changing_content_after_draft(InvoiceStatus status)
+    {
+        await using var factory = await CreateFactoryAsync();
+        var invoice = await SeedInvoiceAsync(factory, status);
+        using var httpClient = TestJwt.AuthorizedClient(factory, UserRole.User);
+        var request = await UnchangedRequestAsync(httpClient, invoice.Id) with { Currency = "EUR" };
+
+        var response = await httpClient.PutAsJsonAsync($"/invoices/{invoice.Id}", request);
+        var reloaded = await httpClient.GetFromJsonAsync<InvoiceDto>($"/invoices/{invoice.Id}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        reloaded.ShouldNotBeNull();
+        reloaded.Currency.ShouldBe("USD");
     }
 }

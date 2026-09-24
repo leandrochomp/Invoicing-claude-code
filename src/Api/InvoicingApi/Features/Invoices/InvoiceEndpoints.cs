@@ -36,6 +36,7 @@ public static class InvoiceEndpoints
             .RequireAuthorization()
             .WithName("ListInvoices")
             .WithSummary("List invoices, optionally filtered by client or status")
+            .WithDescription("Overdue is derived, never stored: a Sent invoice whose due date has passed is returned and filtered as Overdue, and status=Sent excludes it.")
             .Produces<PagedResponse<InvoiceSummaryDto>>();
 
         app.MapPut("/invoices/{id:guid}", async (Guid id, UpdateInvoiceRequest request, UpdateInvoiceHandler handler, CancellationToken cancellationToken) =>
@@ -44,6 +45,7 @@ public static class InvoiceEndpoints
             .RequireAuthorization()
             .WithName("UpdateInvoice")
             .WithSummary("Update an existing invoice")
+            .WithDescription("A Draft can be edited freely. A Sent invoice accepts a change to Notes only; any other change returns 409. Paid and Void invoices can't be edited. Status is never set here: use the send and void actions.")
             .Produces<InvoiceDto>()
             .ProducesValidationProblem()
             .Produces(StatusCodes.Status404NotFound)
@@ -53,8 +55,33 @@ public static class InvoiceEndpoints
                 (await handler.HandleAsync(id, cancellationToken)).ToApiResult())
             .RequireAuthorization()
             .WithName("DeleteInvoice")
-            .WithSummary("Delete an invoice")
+            .WithSummary("Delete a draft invoice")
+            .WithDescription("Only a Draft can be deleted; any other status returns 409. Void a Sent invoice instead.")
             .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
+
+        app.MapPost("/invoices/{id:guid}/send", async (Guid id, SendInvoiceRequest request, SendInvoiceHandler handler, CancellationToken cancellationToken) =>
+                (await handler.HandleAsync(id, request, cancellationToken)).ToApiResult())
+            .AddEndpointFilter<ValidationFilter<SendInvoiceRequest>>()
+            .RequireAuthorization()
+            .WithName("SendInvoice")
+            .WithSummary("Send a draft invoice, freezing its content")
+            .WithDescription("Draft → Sent. Returns 409 if the invoice isn't a Draft or `version` is stale.")
+            .Produces<InvoiceDto>()
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
+
+        app.MapPost("/invoices/{id:guid}/void", async (Guid id, VoidInvoiceRequest request, VoidInvoiceHandler handler, CancellationToken cancellationToken) =>
+                (await handler.HandleAsync(id, request, cancellationToken)).ToApiResult())
+            .AddEndpointFilter<ValidationFilter<VoidInvoiceRequest>>()
+            .RequireAuthorization()
+            .WithName("VoidInvoice")
+            .WithSummary("Void a sent invoice that has no payments")
+            .WithDescription("Sent → Void. Returns 409 if the invoice isn't Sent, has recorded payments, or `version` is stale.")
+            .Produces<InvoiceDto>()
+            .ProducesValidationProblem()
             .Produces(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status409Conflict);
 

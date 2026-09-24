@@ -17,6 +17,13 @@ public class DeleteInvoiceHandler(
             return Result.NotFound();
         }
 
+        // Once sent, an invoice is part of the financial record: void it instead.
+        if (invoice.Status != InvoiceStatus.Draft)
+        {
+            logger.LogWarning("Invoice {InvoiceId} not deleted: status {InvoiceStatus} is not draft", id, invoice.Status);
+            return Result.Conflict(["Only a draft invoice can be deleted."]);
+        }
+
         dbContext.Invoices.Remove(invoice);
 
         try

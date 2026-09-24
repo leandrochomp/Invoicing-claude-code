@@ -43,7 +43,10 @@ internal static class InvoiceHandlerTestData
     // Seeds a 100.00 invoice, optionally with one recorded payment, and detaches everything so
     // the handler under test loads fresh state the way it would in a real request.
     public static async Task<Invoice> SeedInvoiceAsync(
-        InvoicingDbContext context, InvoiceStatus status = InvoiceStatus.Sent, decimal? paymentAmount = null)
+        InvoicingDbContext context,
+        InvoiceStatus status = InvoiceStatus.Sent,
+        decimal? paymentAmount = null,
+        DateTimeOffset? dueDate = null)
     {
         var client = await SeedClientAsync(context);
 
@@ -52,7 +55,7 @@ internal static class InvoiceHandlerTestData
             ClientId = client.Id,
             InvoiceNumber = await InvoiceNumberGenerator.NextAsync(context),
             IssueDate = DateTimeOffset.UtcNow,
-            DueDate = DateTimeOffset.UtcNow.AddDays(30),
+            DueDate = dueDate ?? DateTimeOffset.UtcNow.AddDays(30),
             Currency = "USD",
             Status = status,
         };

@@ -35,7 +35,7 @@ public sealed class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequ
     }
 }
 
-public class CreateInvoiceHandler(InvoicingDbContext dbContext, ILogger<CreateInvoiceHandler> logger)
+public class CreateInvoiceHandler(InvoicingDbContext dbContext, TimeProvider timeProvider, ILogger<CreateInvoiceHandler> logger)
 {
     public async Task<Result<InvoiceDto>> HandleAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
@@ -88,7 +88,7 @@ public class CreateInvoiceHandler(InvoicingDbContext dbContext, ILogger<CreateIn
                     "Invoice {InvoiceId} created with number {InvoiceNumber} for client {ClientId}",
                     invoice.Id, invoice.InvoiceNumber, invoice.ClientId);
 
-                return Result<InvoiceDto>.Created(InvoiceQueries.ToDto(invoice), $"/invoices/{invoice.Id}");
+                return Result<InvoiceDto>.Created(InvoiceQueries.ToDto(invoice, timeProvider.GetUtcNow()), $"/invoices/{invoice.Id}");
             }
             catch (DbUpdateException ex) when (attempt < InvoiceNumberGenerator.MaxAttempts && IsInvoiceNumberConflict(ex))
             {
