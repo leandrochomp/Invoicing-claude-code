@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ClientSummary } from '../api/clientsApi'
 import { errorMessage } from '../api/http'
 import type { Invoice } from '../api/invoicesApi'
-import { InvoiceStatus, amountPaid, balanceDue, deleteInvoice, getInvoice, toUpdateInput, updateInvoice } from '../api/invoicesApi'
+import { InvoiceStatus, amountPaid, balanceDue, deleteInvoice, getInvoice, sendInvoice, voidInvoice } from '../api/invoicesApi'
 import type { Payment } from '../api/paymentsApi'
 import { createPayment, deletePayment, paymentMethodLabels, updatePayment } from '../api/paymentsApi'
 import { BackLink } from '../components/BackLink'
@@ -56,8 +56,8 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
   const number = formatInvoiceNumber(current.invoiceNumber)
   const paid = amountPaid(current)
   const balance = balanceDue(current)
+  const isDraft = current.status === InvoiceStatus.Draft
   const isOpen = current.status === InvoiceStatus.Sent || current.status === InvoiceStatus.Overdue
-  const canEdit = current.status === InvoiceStatus.Draft || isOpen
   const money = (amount: number) => formatMoney(amount, current.currency)
 
   async function runAction(action: () => Promise<void>, fallback: string) {
@@ -72,16 +72,19 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
     }
   }
 
-  function changeStatus(status: InvoiceStatus) {
-    return runAction(async () => {
-      setInvoice(await updateInvoice(current.id, toUpdateInput(current, { status })))
-    }, 'Failed to update the invoice.')
+  function handleSend() {
+    runAction(async () => {
+      setInvoice(await sendInvoice(current.id, current.version))
+    }, 'Failed to send the invoice.')
   }
 
   function handleVoid() {
-    if (window.confirm(`Void invoice ${number}? It stays on record but can no longer be paid.`)) {
-      changeStatus(InvoiceStatus.Void)
+    if (!window.confirm(`Void invoice ${number}? It stays on record but can no longer be paid.`)) {
+      return
     }
+    runAction(async () => {
+      setInvoice(await voidInvoice(current.id, current.version))
+    }, 'Failed to void the invoice.')
   }
 
   function handleDelete() {
@@ -135,20 +138,20 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
         <div>
           <div className="title-row">
             <h1>Invoice {number}</h1>
-            <StatusBadge status={current.status} dueDate={current.dueDate} />
+            <StatusBadge status={current.status} />
           </div>
           <p className="page-intro">
             {clientName(clients, current.clientId)} · Issued {formatDate(current.issueDate)} · Due {formatDate(current.dueDate)}
           </p>
         </div>
         <div className="header-actions">
-          {canEdit && (
+          {isDraft && (
             <a className="button-secondary" href={`#/invoices/${current.id}/edit`}>
               Edit
             </a>
           )}
-          {current.status === InvoiceStatus.Draft && (
-            <button type="button" className="button-primary" onClick={() => changeStatus(InvoiceStatus.Sent)} disabled={busy}>
+          {isDraft && (
+            <button type="button" className="button-primary" onClick={handleSend} disabled={busy}>
               Mark as sent
             </button>
           )}
@@ -299,17 +302,20 @@ export function InvoiceDetailPage({ id, clients }: { id: string; clients: Client
             )}
           </div>
 
-          {/* Money already received stays tied to a live invoice, so only an unpaid invoice can be voided or deleted. */}
-          {current.payments.length === 0 && (
+          {/* A draft was never issued, so it can be deleted. Once sent it's on record: it can only be voided,
+              and only while nothing has been paid. Paid and void invoices are final. */}
+          {(isDraft || (isOpen && current.payments.length === 0)) && (
             <div className="danger-zone">
-              {current.status !== InvoiceStatus.Void && (
+              {isOpen && (
                 <button type="button" className="button-ghost button-ghost-danger" onClick={handleVoid} disabled={busy}>
                   Void invoice
                 </button>
               )}
-              <button type="button" className="button-ghost button-ghost-danger" onClick={handleDelete} disabled={busy}>
-                Delete invoice
-              </button>
+              {isDraft && (
+                <button type="button" className="button-ghost button-ghost-danger" onClick={handleDelete} disabled={busy}>
+                  Delete invoice
+                </button>
+              )}
             </div>
           )}
         </section>

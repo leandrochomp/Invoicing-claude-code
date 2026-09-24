@@ -158,7 +158,7 @@ function InvoiceListView({ clients }: { clients: ClientSummary[] | null }) {
                   <td>{clientName(clients, invoice.clientId)}</td>
                   <td className="data-table-muted">{formatDate(invoice.dueDate)}</td>
                   <td>
-                    <StatusBadge status={invoice.status} dueDate={invoice.dueDate} />
+                    <StatusBadge status={invoice.status} />
                   </td>
                   <td className="numeric">{formatMoney(invoice.grandTotal, invoice.currency)}</td>
                 </tr>
@@ -249,6 +249,9 @@ function EditInvoice({ id, clients }: { id: string; clients: ClientSummary[] }) 
   }
   if (!invoice || !initialValues) {
     return <LoadingRows label="Loading invoice…" />
+  }
+  if (invoice.status !== InvoiceStatus.Draft) {
+    return <ErrorAlert message="Only a draft invoice can be edited. Once sent, an invoice’s content is final." />
   }
 
   async function handleSubmit(values: InvoiceFormValues) {

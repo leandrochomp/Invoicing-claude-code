@@ -2,7 +2,8 @@ import type { Payment } from './paymentsApi'
 import { roundMoney } from '../lib/format'
 import { requestJson, requestNoContent, withQuery } from './http'
 
-// Mirrors InvoicingApi's InvoiceStatus, which travels over the wire as its number.
+// Mirrors InvoicingApi's InvoiceStatus, which travels over the wire as its number. The API never stores
+// Overdue: it reports a Sent invoice past its due date as Overdue.
 export const InvoiceStatus = {
   Draft: 0,
   Sent: 1,
@@ -86,8 +87,8 @@ export interface CreateInvoiceInput {
   items: InvoiceItemInput[]
 }
 
+// Status isn't part of an update: it changes through sendInvoice/voidInvoice, or with payments.
 export interface UpdateInvoiceInput extends CreateInvoiceInput {
-  status: InvoiceStatus
   version: number
 }
 
@@ -121,11 +122,20 @@ export function deleteInvoice(id: string): Promise<void> {
   return requestNoContent(`/bff/invoices/${id}`, { method: 'DELETE' })
 }
 
-// Turns a loaded invoice back into an update payload, so a status change keeps everything else as-is.
+// Draft → Sent. From then on only the notes can change.
+export function sendInvoice(id: string, version: number): Promise<Invoice> {
+  return requestJson<Invoice>(`/bff/invoices/${id}/send`, { method: 'POST', body: JSON.stringify({ version }) })
+}
+
+// Sent → Void, only while nothing has been paid.
+export function voidInvoice(id: string, version: number): Promise<Invoice> {
+  return requestJson<Invoice>(`/bff/invoices/${id}/void`, { method: 'POST', body: JSON.stringify({ version }) })
+}
+
+// Turns a loaded invoice back into an update payload, so an edit keeps everything it doesn't change.
 export function toUpdateInput(invoice: Invoice, changes: Partial<UpdateInvoiceInput> = {}): UpdateInvoiceInput {
   return {
     clientId: invoice.clientId,
-    status: invoice.status,
     issueDate: invoice.issueDate,
     dueDate: invoice.dueDate,
     currency: invoice.currency,

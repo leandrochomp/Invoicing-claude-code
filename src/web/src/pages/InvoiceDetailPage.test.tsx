@@ -2,15 +2,16 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Invoice } from '../api/invoicesApi'
-import { InvoiceStatus, deleteInvoice, getInvoice, updateInvoice } from '../api/invoicesApi'
+import { InvoiceStatus, deleteInvoice, getInvoice, sendInvoice, voidInvoice } from '../api/invoicesApi'
 import { PaymentMethod, createPayment, deletePayment } from '../api/paymentsApi'
 import { InvoiceDetailPage } from './InvoiceDetailPage'
 
 vi.mock('../api/invoicesApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/invoicesApi')>()),
   getInvoice: vi.fn(),
-  updateInvoice: vi.fn(),
   deleteInvoice: vi.fn(),
+  sendInvoice: vi.fn(),
+  voidInvoice: vi.fn(),
 }))
 
 vi.mock('../api/paymentsApi', async (importOriginal) => ({
@@ -70,13 +71,13 @@ describe('InvoiceDetailPage', () => {
 
   it('marks a draft as sent, sending the version it was loaded with', async () => {
     vi.mocked(getInvoice).mockResolvedValue(draft)
-    vi.mocked(updateInvoice).mockResolvedValue({ ...draft, status: InvoiceStatus.Sent, version: 3 })
+    vi.mocked(sendInvoice).mockResolvedValue({ ...draft, status: InvoiceStatus.Sent, version: 3 })
     const user = userEvent.setup()
     render(<InvoiceDetailPage id="inv-1" clients={clients} />)
 
     await user.click(await screen.findByRole('button', { name: 'Mark as sent' }))
 
-    expect(updateInvoice).toHaveBeenCalledWith('inv-1', expect.objectContaining({ status: InvoiceStatus.Sent, version: 2 }))
+    expect(sendInvoice).toHaveBeenCalledWith('inv-1', 2)
     expect(await screen.findByRole('button', { name: 'Record payment' })).toBeInTheDocument()
   })
 
@@ -134,7 +135,44 @@ describe('InvoiceDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Delete invoice' })).not.toBeInTheDocument()
   })
 
-  it('deletes an unpaid invoice and returns to the list', async () => {
+  it('offers edit and delete on a draft, but not void', async () => {
+    vi.mocked(getInvoice).mockResolvedValue(draft)
+
+    render(<InvoiceDetailPage id="inv-1" clients={clients} />)
+
+    expect(await screen.findByRole('link', { name: 'Edit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete invoice' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Void invoice' })).not.toBeInTheDocument()
+  })
+
+  it('freezes a sent invoice: no edit or delete, and voids it through the void action', async () => {
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+    const sent = { ...draft, status: InvoiceStatus.Sent }
+    vi.mocked(getInvoice).mockResolvedValue(sent)
+    vi.mocked(voidInvoice).mockResolvedValue({ ...sent, status: InvoiceStatus.Void, version: 3 })
+    const user = userEvent.setup()
+    render(<InvoiceDetailPage id="inv-1" clients={clients} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Void invoice' }))
+
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete invoice' })).not.toBeInTheDocument()
+    await waitFor(() => expect(voidInvoice).toHaveBeenCalledWith('inv-1', 2))
+    expect(await screen.findByText('Void')).toBeInTheDocument()
+  })
+
+  it('offers nothing to change on a void invoice', async () => {
+    vi.mocked(getInvoice).mockResolvedValue({ ...draft, status: InvoiceStatus.Void })
+
+    render(<InvoiceDetailPage id="inv-1" clients={clients} />)
+
+    await screen.findByRole('heading', { name: 'Invoice #1001' })
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Void invoice' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete invoice' })).not.toBeInTheDocument()
+  })
+
+  it('deletes a draft invoice and returns to the list', async () => {
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
     vi.mocked(getInvoice).mockResolvedValue(draft)
     vi.mocked(deleteInvoice).mockResolvedValue(undefined)
@@ -150,7 +188,7 @@ describe('InvoiceDetailPage', () => {
   it('shows a conflict from the server when the invoice changed underneath', async () => {
     const { ApiError } = await import('../api/http')
     vi.mocked(getInvoice).mockResolvedValue(draft)
-    vi.mocked(updateInvoice).mockRejectedValue(new ApiError('The invoice was modified by another request. Reload and try again.', 409))
+    vi.mocked(sendInvoice).mockRejectedValue(new ApiError('The invoice was modified by another request. Reload and try again.', 409))
     const user = userEvent.setup()
     render(<InvoiceDetailPage id="inv-1" clients={clients} />)
 
