@@ -1,6 +1,8 @@
 # AGENTS.md
 Guidance for AI coding agents working in this repository.
 
+![Solution architecture: runtime flow and project references](src/docs/architecture.png)
+
 ## Project engineering guide
 Invoicing REST API. Backend: .NET 10 Minimal API + EF Core (Npgsql).
 Frontend: React + Vite.

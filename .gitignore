@@ -54,5 +54,6 @@ skills/
 **/skills/
 .agents/
 **/.agents/
-**/src/docs
+src/docs/*
+!src/docs/*.png
 
