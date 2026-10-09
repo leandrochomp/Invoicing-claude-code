@@ -16,6 +16,8 @@ Invoicing REST API with a React client.
 
 # Architecture
 
+![Solution architecture: runtime flow and project references](src/docs/architecture.png)
+
 ```
 browser ──► vite dev server :5173 ──/bff/*──► BFF :7180 ──► API :7073 ──► Postgres :5432
                                                                │
